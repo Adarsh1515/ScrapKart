@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register - Scrapkart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.google.com/recaptcha/api.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        /* Specific Overrides for Auth Logic Elements to match Green Theme */
+        .auth-tab {
+            padding: 15px;
+            cursor: pointer;
+            text-align: center;
+            border-bottom: 2px solid transparent;
+            color: #666;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .auth-tab.active {
+            color: var(--primary-green);
+            border-bottom-color: var(--primary-green);
+        }
+
+
+
+        .phone-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Success/Error Messages */
+        .success-message {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        /* OTP Section */
+        .otp-verify-section {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .otp-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-sidebar">
+                <h2><i class="fas fa-recycle"></i> Scrapkart</h2>
+                <p>Join the green revolution. Sell scrap, earn money, and buy recycled products.</p>
+                <div style="margin-top: 30px;">
+                    <a href="index.html" style="color: var(--primary-green); font-weight: 600; text-decoration: none;">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <div class="auth-main">
+                <!-- Tabs -->
+                <div style="display: flex; border-bottom: 1px solid #eee; margin-bottom: 30px;">
+                    <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+                    <div class="auth-tab" onclick="switchTab('register')">Register</div>
+                </div>
+
+                <!-- Login Form -->
+                <div id="loginForm" class="auth-form active">
+
+                    <div id="loginMessage"></div>
+
+                    <form onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="loginPhone">Phone Number</label>
+                            <input type="tel" id="loginPhone" placeholder="+91 98765 43210"
+                                oninput="formatPhoneNumber(this)" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="submit-btn" style="width: 100%;">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </form>
+
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="#" onclick="showForgotPassword()"
+                            style="color: var(--primary-green); font-size: 0.9rem; text-decoration: none;">Forgot
+                            Password?</a>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" class="auth-form" style="display: none;">
+
+                    <div id="registerMessage"></div>
+
+                    <form onsubmit="handleRegister(event)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" id="registerFirstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" id="registerLastName" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="registerEmail" required>
+                            <!-- Invisible Recaptcha Container -->
+                            <div id="emailOtpRow" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <div class="phone-input-container">
+                                <input type="tel" id="registerPhone" placeholder="+91 98765 43210"
+                                    oninput="formatPhoneNumber(this)" required>
+                                <button type="button" id="sendOtpBtn" class="btn btn-secondary" onclick="phoneAuth()"
+                                    style="padding: 10px 15px; font-size: 0.9rem;">Send OTP</button>
+                            </div>
+                            <small style="color: #666; font-size: 0.85rem; margin-top: 5px; display: block;">Enter with
+                                country code (e.g., +91)</small>
+
+                            <!-- OTP Verification Section -->
+                            <div id="otpVerifySection" class="otp-verify-section" style="display: none;">
+                                <div class="otp-actions">
+                                    <input type="text" id="phoneOtpInput" placeholder="Enter OTP" maxlength="6"
+                                        style="text-align: center; letter-spacing: 2px;">
+                                    <button type="button" id="verifyOtpBtn" class="btn btn-secondary"
+                                        onclick="codeverify()" style="padding: 10px;">Verify</button>
+                                    <span id="phoneOtpStatus" class="otp-status"></span>
+                                </div>
+                                <div class="otp-timer-container"
+                                    style="text-align: center; margin-top: 8px; font-size: 0.85rem; color: #666;">
+                                    <span id="otpTimerText">Resend OTP in 15s</span>
+                                    <button type="button" id="resendOtpBtn" class="resend-btn" onclick="resendOtp()"
+                                        style="display: none; background: none; border: none; color: var(--primary-green); cursor: pointer; text-decoration: underline;">Resend
+                                        OTP</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="registerPassword" required minlength="6">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" required minlength="6">
+                        </div>
+
+                        <button type="submit" class="submit-btn" style="width: 100%;">
+                            <i class="fas fa-user-plus"></i> Register
+                        </button>
+
+                        <div id="verificationStatus" class="verification-status"
+                            style="display: none; margin-top: 15px; padding: 10px; background: #f0fdf4; border-radius: 8px; color: #065f46;">
+                            <p><i class="fas fa-info-circle"></i> <span id="verificationText"></span></p>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Forgot Password Section -->
+                <div id="forgotPasswordSection" class="auth-form" style="display: none;">
+                    <h3 style="margin-bottom: 20px; color: var(--primary-green);">Reset Password</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Enter your phone number to receive an OTP.</p>
+
+                    <div id="forgotPasswordMessage"></div>
+
+                    <form onsubmit="event.preventDefault();">
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <div class="phone-input-container">
+                                <input type="tel" id="forgotPhone" placeholder="+91 98765 43210"
+                                    oninput="formatPhoneNumber(this)" required>
+                                <button type="button" id="sendForgotOtpBtn" class="btn btn-secondary"
+                                    onclick="sendForgotPasswordOtp()">Send OTP</button>
+                            </div>
+                        </div>
+
+                        <div id="forgotOtpVerifySection" style="display: none; margin-bottom: 20px;">
+                            <div class="form-group">
+                                <label>Enter OTP</label>
+                                <div class="otp-actions">
+                                    <input type="text" id="forgotOtpInput" placeholder="Enter OTP" maxlength="6">
+                                    <button type="button" id="verifyForgotOtpBtn" class="btn btn-secondary"
+                                        onclick="verifyForgotPasswordOtp()">Verify</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="resetPasswordFields" style="display: none;">
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" id="newPassword" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm New Password</label>
+                                <input type="password" id="confirmNewPassword" required minlength="6">
+                            </div>
+                            <button type="button" class="submit-btn" onclick="resetPassword()">Reset Password</button>
+                        </div>
+
+                        <div class="auth-footer" style="margin-top: 20px; text-align: center;">
+                            <a href="#" onclick="cancelForgotPassword()"
+                                style="color: #666; text-decoration: none;">Back to Login</a>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC SCRIPTS FROM REFERENCE -->
+    <script>
+        let currentUserType = 'user';
+        let currentTab = 'login';
+
+        // Load existing users and admins from localStorage
+        let users = [];
+        let admins = [];
+
+        const savedUsers = localStorage.getItem('drapedrop_users');
+        const savedAdmins = localStorage.getItem('drapedrop_admins');
+
+        if (savedUsers) {
+            users = JSON.parse(savedUsers);
+        } else {
+            // Default users
+            users = [{
+                id: 1, firstName: 'John', lastName: 'Doe', email: 'user@example.com',
+                phone: '9876543210', password: 'user123', type: 'user', createdAt: new Date().toISOString()
+            }];
+            localStorage.setItem('drapedrop_users', JSON.stringify(users));
+        }
+
+        if (savedAdmins) {
+            admins = JSON.parse(savedAdmins);
+        } else {
+            // Default admin
+            admins = [{
+                id: 1, firstName: 'Seller', lastName: 'User', email: 'admin@drapedrop.com',
+                phone: '9876543210', password: 'admin123', type: 'admin', createdAt: new Date().toISOString()
+            }];
+            localStorage.setItem('drapedrop_admins', JSON.stringify(admins));
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            // Update tabs UI
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            // Find tab header by text content (simple way since no IDs on headers)
+            Array.from(document.querySelectorAll('.auth-tab')).find(el => el.textContent.toLowerCase() === tab).classList.add('active');
+
+            // Show/hide forms
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('forgotPasswordSection').style.display = 'none';
+            document.getElementById(tab + 'Form').style.display = 'block';
+
+            // Clear messages
+            if (document.getElementById('loginMessage')) document.getElementById('loginMessage').innerHTML = '';
+            if (document.getElementById('registerMessage')) document.getElementById('registerMessage').innerHTML = '';
+        }
+
+
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}-message">${message}</div>`;
+        }
+
+        /* --- FIREBASE AUTH LOGIC --- */
+
+        render();
+        function render() {
+            window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('sendOtpBtn', {
+                'size': 'invisible',
+                'callback': (response) => {
+                    // reCAPTCHA solved
+                }
+            });
+            recaptchaVerifier.render();
+        }
+
+        let otpTimerInterval;
+
+        function phoneAuth() {
+            var number = document.getElementById('registerPhone').value;
+            const cleanNumber = number.replace(/\D/g, '');
+            if (!number || !number.startsWith('+') || cleanNumber.length < 10) {
+                showMessage('registerMessage', "Invalid Phone number. Please enter valid phone number (e.g. +91...)", 'error');
+                return;
+            }
+
+            firebase.auth().signInWithPhoneNumber(number, window.recaptchaVerifier).then(function (confirmationResult) {
+                window.confirmationResult = confirmationResult;
+                coderesult = confirmationResult;
+
+                document.getElementById('otpVerifySection').style.display = 'block';
+                showMessage('registerMessage', 'OTP sent successfully!', 'success');
+                startOtpTimer();
+            }).catch(function (error) {
+                if (error.code === 'auth/too-many-requests') {
+                    showMessage('registerMessage', "Too many requests. Try again later.", 'error');
+                } else if (error.code === 'auth/internal-error') {
+                    // Fallback for demo/bad internet if firebase fails immediately
+                    console.log("Internal error, using mocked flow for demo if needed.");
+                    showMessage('registerMessage', "Firebase Error: " + error.message, 'error');
+                } else {
+                    showMessage('registerMessage', error.message, 'error');
+                }
+            });
+        }
+
+        function codeverify() {
+            var code = document.getElementById('phoneOtpInput').value;
+            if (!window.confirmationResult) {
+                showMessage('registerMessage', "Please send OTP first.", 'error');
+                return;
+            }
+            window.confirmationResult.confirm(code).then(function (result) {
+                var user = result.user;
+                console.log(user);
+                document.getElementById('phoneOtpStatus').textContent = "Verified";
+                document.getElementById('phoneOtpStatus').className = "otp-status success";
+                document.getElementById('verifyOtpBtn').textContent = "Verified";
+                document.getElementById('verifyOtpBtn').classList.add("success");
+                sessionStorage.setItem('otp_phone_verified', 'true');
+                showMessage('registerMessage', "Phone Number Verified Successfully", 'success');
+            }).catch(function (error) {
+                document.getElementById('phoneOtpStatus').textContent = "Invalid";
+                document.getElementById('phoneOtpStatus').className = "otp-status error";
+                showMessage('registerMessage', "Invalid OTP", 'error');
+            });
+        }
+
+        function startOtpTimer() {
+            let timeLeft = 60;
+            const timerText = document.getElementById('otpTimerText');
+            const resendBtn = document.getElementById('resendOtpBtn');
+            const sendOtpBtn = document.getElementById('sendOtpBtn');
+
+            timerText.style.display = 'inline';
+            resendBtn.style.display = 'none';
+            timerText.textContent = `Resend OTP in ${timeLeft}s`;
+
+            if (otpTimerInterval) clearInterval(otpTimerInterval);
+            otpTimerInterval = setInterval(() => {
+                timeLeft--;
+                timerText.textContent = `Resend OTP in ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(otpTimerInterval);
+                    timerText.style.display = 'none';
+                    resendBtn.style.display = 'inline';
+                }
+            }, 1000);
+        }
+
+        function resendOtp() {
+            phoneAuth();
+        }
+
+        function formatPhoneNumber(input) {
+            // Basic formatter if needed, currently allowing free text
+        }
+
+        /* --- REGISTRATION HANDLER --- */
+        function handleRegister(event) {
+            event.preventDefault();
+
+            // Check OTP
+            if (!sessionStorage.getItem('otp_phone_verified')) {
+                showMessage('registerMessage', "Please verify phone number first.", 'error');
+                return;
+            }
+
+            const firstName = document.getElementById('registerFirstName').value;
+            const lastName = document.getElementById('registerLastName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showMessage('registerMessage', "Passwords do not match.", 'error');
+                return;
+            }
+
+            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
+            let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+
+            if (collection.find(u => u.phone === phone || u.email === email)) {
+                showMessage('registerMessage', "User already exists with this phone or email.", 'error');
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                firstName, lastName, email, phone, password,
+                type: currentUserType,
+                wallet: 0,
+                createdAt: new Date().toISOString()
+            };
+
+            collection.push(newUser);
+            localStorage.setItem(collectionName, JSON.stringify(collection));
+
+            // Also update the simple scrapkart users for the other pages
+            let simpleUsers = JSON.parse(localStorage.getItem('scrapkart_users') || '[]');
+            simpleUsers.push({
+                id: newUser.id,
+                name: firstName + ' ' + lastName,
+                phone: phone,
+                password: password,
+                wallet: 0
+            });
+            localStorage.setItem('scrapkart_users', JSON.stringify(simpleUsers));
+
+            showMessage('registerMessage', "Registration Successful! Redirecting to login...", 'success');
+            setTimeout(() => switchTab('login'), 1500);
+        }
+
+        /* --- LOGIN HANDLER --- */
+        function handleLogin(event) {
+            event.preventDefault();
+            const phone = document.getElementById('loginPhone').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
+            const collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+
+            const user = collection.find(u => u.phone === phone && u.password === password);
+
+            if (user) {
+                // Adapt to Scrapkart format
+                const sessionUser = {
+                    id: user.id,
+                    name: user.firstName + ' ' + user.lastName,
+                    phone: user.phone,
+                    wallet: user.wallet || 0 // Ensure wallet exists
+                };
+                localStorage.setItem('scrapkart_currentUser', JSON.stringify(sessionUser));
+                window.location.href = 'dashboard.html';
+            } else {
+                showMessage('loginMessage', "Invalid Phone or Password", 'error');
+            }
+        }
+
+        /* --- FORGOT PASSWORD --- */
+        function showForgotPassword() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('forgotPasswordSection').style.display = 'block';
+
+            // Init recaptcha for forgot password if not exists
+            if (!window.forgotRecaptchaVerifier) {
+                window.forgotRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('sendForgotOtpBtn', {
+                    'size': 'invisible'
+                });
+                window.forgotRecaptchaVerifier.render();
+            }
+        }
+
+        function cancelForgotPassword() {
+            document.getElementById('forgotPasswordSection').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function sendForgotPasswordOtp() {
+            const number = document.getElementById('forgotPhone').value;
+            // Simplified logic for demo:
+            if (!number) {
+                showMessage('forgotPasswordMessage', "Please enter phone number", 'error');
+                return;
+            }
+            firebase.auth().signInWithPhoneNumber(number, window.forgotRecaptchaVerifier)
+                .then((result) => {
+                    window.forgotConfirmationResult = result;
+                    document.getElementById('forgotOtpVerifySection').style.display = 'block';
+                    showMessage('forgotPasswordMessage', "OTP Sent!", 'success');
+                })
+                .catch(err => showMessage('forgotPasswordMessage', err.message, 'error'));
+        }
+
+        function verifyForgotPasswordOtp() {
+            const code = document.getElementById('forgotOtpInput').value;
+            if (window.forgotConfirmationResult) {
+                window.forgotConfirmationResult.confirm(code)
+                    .then(() => {
+                        document.getElementById('resetPasswordFields').style.display = 'block';
+                        document.getElementById('forgotOtpVerifySection').style.display = 'none';
+                        showMessage('forgotPasswordMessage', "Verified! Set new password.", 'success');
+                    })
+                    .catch(() => showMessage('forgotPasswordMessage', "Invalid OTP", 'error'));
+            }
+        }
+
+        function resetPassword() {
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmNewPassword').value;
+            const phone = document.getElementById('forgotPhone').value;
+
+            if (newPass.length < 6) return alert("Password too short");
+            if (newPass !== confirmPass) return alert("Passwords differ");
+
+            // Update in storage
+            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
+            let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+            const idx = collection.findIndex(u => u.phone === phone);
+
+            if (idx !== -1) {
+                collection[idx].password = newPass;
+                localStorage.setItem(collectionName, JSON.stringify(collection));
+                alert("Password Updated! Please Login.");
+                cancelForgotPassword();
+            } else {
+                alert("User not found locally (Demo Only)");
+            }
+        }
+        // Check for URL parameters to switch tab
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam && (tabParam === 'login' || tabParam === 'register')) {
+                switchTab(tabParam);
+            }
+        });
+    </script>
+</body>
+
+</html>

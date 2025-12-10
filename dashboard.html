@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Scrapkart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body style="background: #f4f7f6;">
+
+    <!-- Navigation -->
+    <nav
+        style="background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;">
+        <div class="logo" style="color: #56ab2f; font-size: 1.8rem; margin: 0; text-shadow: none;">
+            <i class="fas fa-recycle"></i> Scrapkart
+        </div>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <span style="font-weight: 600; color: #555;">Welcome, <span id="userNameDisplay">User</span></span>
+            <span class="user-wallet"
+                style="background: #e8f5e9; padding: 5px 15px; border-radius: 20px; color: #2e7d32; font-weight: bold;">
+                <i class="fas fa-wallet"></i> ₹<span id="navWalletBalance">0</span>
+            </span>
+            <button onclick="toggleCart()"
+                style="background: none; border: none; color: #555; cursor: pointer; font-weight: 600; margin-right: 15px; position: relative;">
+                <i class="fas fa-shopping-cart"></i> Cart
+                <span id="cartCount"
+                    style="background: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; position: absolute; top: -8px; right: -8px; display: none;">0</span>
+            </button>
+            <button onclick="logout()"
+                style="background: none; border: none; color: #f44336; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 30px; display: flex; gap: 30px; align-items: start;">
+
+        <!-- Sidebar -->
+        <div
+            style="flex: 0 0 250px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+            <div class="sidebar-menu">
+                <button class="menu-btn active" onclick="showSection('sell')"
+                    style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s;">
+                    <i class="fas fa-weight-hanging" style="width: 25px;"></i> Sell Scrap
+                </button>
+                <button class="menu-btn" onclick="showSection('wallet')"
+                    style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s;">
+                    <i class="fas fa-wallet" style="width: 25px;"></i> My Wallet
+                </button>
+                <button class="menu-btn" onclick="showSection('market')"
+                    style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s;">
+                    <i class="fas fa-shopping-bag" style="width: 25px;"></i> Marketplace
+                </button>
+                <button class="menu-btn" onclick="showSection('orders')"
+                    style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s;">
+                    <i class="fas fa-history" style="width: 25px;"></i> Order History
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style="flex: 1;">
+
+            <!-- SECTION: SELL SCRAP -->
+            <div id="section-sell" class="content-section">
+                <div class="card">
+                    <h2 style="color: #2e7d32; margin-bottom: 20px;">Sell Your Scrap</h2>
+
+                    <!-- Step 1: Calculator -->
+                    <div id="sell-step-1">
+                        <div class="form-group">
+                            <label>Select Scrap Type</label>
+                            <select id="scrapType" onchange="calculatePrice()">
+                                <option value="" disabled selected>Choose type...</option>
+                                <option value="paper" data-price="12">Paper (₹12/kg)</option>
+                                <option value="plastic" data-price="15">Plastic (₹15/kg)</option>
+                                <option value="metal" data-price="40">Metal (₹40/kg)</option>
+                                <option value="ewaste" data-price="90">E-Waste (₹90/kg)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estimated Weight (kg)</label>
+                            <input type="number" id="scrapWeight" placeholder="Ex: 5" min="1"
+                                oninput="calculatePrice()">
+                        </div>
+
+                        <div class="calculator-box">
+                            <span>Estimated Earnings:</span>
+                            <div class="price-display">₹<span id="calculatedPrice">0</span></div>
+                        </div>
+
+                        <button class="submit-btn" onclick="goToAddress()" style="margin-top: 20px;">Continue</button>
+                    </div>
+
+                    <!-- Step 2: Address -->
+                    <div id="sell-step-2" style="display: none;">
+                        <button onclick="backToCalc()"
+                            style="background: none; border: none; color: #666; cursor: pointer; margin-bottom: 15px;">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <h3>Pickup Address</h3>
+                        <div class="form-group">
+                            <label>Address Line 1</label>
+                            <input type="text" id="addressLine1" placeholder="House No, Building Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Address Line 2</label>
+                            <input type="text" id="addressLine2" placeholder="Street, Area (Optional)">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="city" placeholder="City" required>
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="state" placeholder="State" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Pincode</label>
+                                <input type="text" id="pincode" placeholder="123456" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Country</label>
+                                <select id="country" required>
+                                    <option value="India">India</option>
+                                    <option value="USA">USA</option>
+                                    <option value="UK">UK</option>
+                                    <option value="Canada">Canada</option>
+                                    <option value="Australia">Australia</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Pickup Date</label>
+                            <input type="date" id="pickupDate">
+                        </div>
+                        <button class="submit-btn" onclick="placeScrapOrder()">Place Pickup Order</button>
+                    </div>
+
+                    <!-- Step 3: Success -->
+                    <div id="sell-step-3" style="display: none; text-align: center; padding: 40px;">
+                        <i class="fas fa-check-circle"
+                            style="font-size: 4rem; color: #56ab2f; margin-bottom: 20px;"></i>
+                        <h3>Order Placed!</h3>
+                        <p>Our agent will arrive on user pickup date.</p>
+                        <p>Payment of <b id="finalPriceDisplay"></b> will be credited to your wallet after pickup.</p>
+                        <button class="btn btn-primary" onclick="resetSellFlow()">Sell More</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: WALLET -->
+            <div id="section-wallet" class="content-section" style="display: none;">
+                <div class="card wallet-card" style="text-align: center; padding: 40px; margin-bottom: 30px;">
+                    <i class="fas fa-wallet" style="font-size: 3rem; opacity: 0.8;"></i>
+                    <p style="color: white; margin-top: 10px; font-weight: 500;">Current Balance</p>
+                    <div class="wallet-balance">₹<span id="walletDisplay">0</span></div>
+                    <button class="btn btn-secondary"
+                        onclick="alert('Withdraw feature coming soon to your bank!')">Withdraw to Bank</button>
+                </div>
+
+                <div class="card">
+                    <h3>Transaction History</h3>
+                    <div id="transactionList" style="margin-top: 20px; color: #666;">
+                        <p>No transactions yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: MARKETPLACE -->
+            <div id="section-market" class="content-section" style="display: none;">
+                <h2 style="margin-bottom: 20px; color: #333;">Recycled Marketplace</h2>
+                <div class="product-grid" id="marketplaceGrid">
+                    <!-- Products injected by JS -->
+                </div>
+            </div>
+
+            <!-- SECTION: ORDERS -->
+            <div id="section-orders" class="content-section" style="display: none;">
+                <h2 style="margin-bottom: 20px; color: #333;">My Orders</h2>
+                <div id="ordersList" style="display: grid; gap: 15px;">
+                    <!-- Orders injected by JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Payment Confirmation Modal (Mock) -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBuyModal()">&times;</span>
+            <h3>Confirm Purchase</h3>
+            <p>Product: <span id="buyProductName"></span></p>
+            <p>Price: ₹<span id="buyProductPrice"></span></p>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+            <p>Your Wallet Balance: ₹<span id="buyWalletBalance"></span></p>
+            <div id="buyError" style="color: red; display: none; margin-bottom: 10px;">Insufficient Balance!</div>
+            <button class="submit-btn" onclick="confirmPurchase()">Confirm Purchase</button>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="toggleCart()">&times;</span>
+            <h3 style="color: #2e7d32; margin-bottom: 15px;"><i class="fas fa-shopping-cart"></i> Your Cart</h3>
+            <div id="cartItems" style="margin: 20px 0; max-height: 300px; overflow-y: auto;">
+                <!-- Items injected by JS -->
+                <p style="text-align: center; color: #666;">Your cart is empty.</p>
+            </div>
+            <div
+                style="border-top: 1px solid #eee; padding-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.2rem; font-weight: bold; color: #333;">Total: ₹<span id="cartTotal">0</span>
+                </div>
+                <button class="submit-btn" onclick="checkoutCart()"
+                    style="width: auto; padding: 10px 25px; margin: 0;">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Init dashboard
+        checkAuth();
+        loadWallet();
+        loadMarketplace();
+        loadOrders();
+
+        // Tab switching logic for styling
+        const buttons = document.querySelectorAll('.menu-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                buttons.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.borderLeftColor = 'transparent';
+                    b.style.background = 'white';
+                    b.style.color = '#555';
+                });
+                this.classList.add('active');
+                this.style.borderLeftColor = '#56ab2f';
+                this.style.background = '#f9fff9';
+                this.style.color = '#2e7d32';
+            });
+        });
+
+        // Set default active tab style
+        const activeBtn = document.querySelector('.menu-btn.active');
+        if (activeBtn) {
+            activeBtn.style.borderLeftColor = '#56ab2f';
+            activeBtn.style.background = '#f9fff9';
+            activeBtn.style.color = '#2e7d32';
+        }
+    </script>
+</body>
+
+</html>
