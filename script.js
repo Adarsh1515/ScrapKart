@@ -1,11 +1,11 @@
 /* Global Data Management */
 const PRODUCTS = [
-    { id: 1, name: "Recycled Notebook (Set of 3)", price: 150, image: "assets/notebook.png" },
-    { id: 2, name: "Eco-Friendly Pen Stand", price: 200, image: "assets/pen_stand.png" },
-    { id: 3, name: "Metal Art Sculpture", price: 1200, image: "assets/metal_art.png" },
-    { id: 4, name: "Recycled Plastic Basket", price: 350, image: "assets/plastic_basket.png" },
-    { id: 5, name: "Paper Mache Decorative Bowl", price: 450, image: "assets/paper_bowl.png" },
-    { id: 6, name: "Upcycled Denim Bag", price: 600, image: "assets/denim_bag.png" },
+    { id: 1, name: "Recycled Notebook (Set of 3)", price: 150, image: "notebook.png" },
+    { id: 2, name: "Eco-Friendly Pen Stand", price: 200, image: "pen_stand.png" },
+    { id: 3, name: "Metal Art Sculpture", price: 1200, image: "metal_art.png" },
+    { id: 4, name: "Recycled Plastic Basket", price: 350, image: "plastic_basket.png" },
+    { id: 5, name: "Paper Mache Decorative Bowl", price: 450, image: "paper_bowl.png" },
+    { id: 6, name: "Upcycled Denim Bag", price: 600, image: "denim_bag.png" },
 ];
 
 /* --- AUTHENTICATION --- */
@@ -1517,3 +1517,4 @@ window.loadPaymentPage = loadPaymentPage;
 window.toggleWallet = toggleWallet;
 window.selectExternalPayment = selectExternalPayment;
 window.processPayment = processPayment;
+
