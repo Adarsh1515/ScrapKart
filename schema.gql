@@ -1,0 +1,55 @@
+type User @table {
+  displayName: String!
+  email: String!
+  passwordHash: String!
+  createdAt: Timestamp!
+  phoneNumber: String
+  address: String
+}
+
+type ScrapType @table {
+  name: String!
+  pricePerKg: Float!
+  description: String
+}
+
+type ScrapOrder @table {
+  user: User!
+  scrapType: ScrapType!
+  weightKg: Float!
+  calculatedPrice: Float!
+  pickupAddress: String!
+  status: String!
+  createdAt: Timestamp!
+  pickupDate: Date
+}
+
+type WalletTransaction @table {
+  user: User!
+  type: String!
+  amount: Float!
+  description: String!
+  createdAt: Timestamp!
+  relatedOrderId: UUID
+}
+
+type Product @table {
+  name: String!
+  price: Float!
+  description: String!
+  category: String!
+  createdAt: Timestamp!
+  imageUrl: String
+  stockQuantity: Int
+}
+
+type ProductOrder @table {
+  user: User!
+  product: Product!
+  quantity: Int!
+  totalPrice: Float!
+  shippingAddress: String!
+  status: String!
+  createdAt: Timestamp!
+  paymentMethod: String
+}

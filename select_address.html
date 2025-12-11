@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Address - Scrapkart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body style="background: #f4f7f6;">
+
+    <nav
+        style="background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;">
+        <div class="logo" style="color: #56ab2f; font-size: 1.8rem; margin: 0; text-shadow: none;">
+            <i class="fas fa-recycle"></i> Scrapkart
+        </div>
+        <a href="dashboard.html"
+            style="text-decoration: none; color: #555; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 1rem;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </nav>
+
+    <div class="container" style="padding-top: 40px; max-width: 600px;">
+        <h2 style="color: #333; margin-bottom: 25px; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-map-marker-alt" style="color: #2e7d32;"></i> Select Delivery Address
+        </h2>
+
+        <div id="addressList" style="display: flex; flex-direction: column; gap: 15px;">
+            <!-- Addresses will be injected here -->
+            <div class="card" style="text-align: center; padding: 40px; color: #666;">
+                Loading addresses...
+            </div>
+        </div>
+
+        <button onclick="addNewAddress()"
+            style="margin-top: 20px; width: 100%; padding: 15px; border: 2px dashed #2e7d32; background: #f0fdf4; color: #2e7d32; font-weight: 600; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+            <i class="fas fa-plus"></i> Add New Address
+        </button>
+
+        <div style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Order Summary</h3>
+            <div id="buyNowSummary" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <!-- Product details -->
+            </div>
+
+            <button id="confirmOrderBtn" onclick="confirmOrder()" class="btn btn-primary"
+                style="width: 100%; justify-content: center; padding: 15px;" disabled>
+                Proceed to Payment
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+    <script>
+        firebase.initializeApp(firebaseConfig);
+
+        // Initial Check
+        const user = JSON.parse(localStorage.getItem('scrapkart_currentUser'));
+        if (!user) window.location.href = 'auth.html';
+
+        // Load Addresses
+        loadAddressSelection(); 
+    </script>
+</body>
+
+</html>

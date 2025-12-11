@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Cart - Scrapkart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body style="background: #f4f7f6;">
+
+    <!-- Navigation -->
+    <nav
+        style="background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;">
+        <div class="logo" style="color: #56ab2f; font-size: 1.8rem; margin: 0; text-shadow: none;">
+            <i class="fas fa-recycle"></i> Scrapkart
+        </div>
+        <a href="dashboard.html"
+            style="text-decoration: none; color: #555; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 1rem;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </nav>
+
+    <div class="container" style="padding-top: 40px; max-width: 900px;">
+        <h2 style="color: #333; margin-bottom: 25px; display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-shopping-cart" style="color: #2e7d32;"></i> Your Cart
+        </h2>
+
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px;">
+
+            <!-- Cart Items -->
+            <div id="cartPageList" style="display: flex; flex-direction: column; gap: 15px;">
+                <!-- Injected JS -->
+                <div class="card" style="text-align: center; padding: 40px; color: #666;">
+                    Loading cart...
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div>
+                <div class="card" style="position: sticky; top: 100px;">
+                    <h3 style="margin-bottom: 20px; font-size: 1.2rem;">Order Summary</h3>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; color: #555;">
+                        <span>Subtotal</span>
+                        <span style="font-weight: 500;">₹<span id="cartPageSubtotal">0</span></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px; color: #555;">
+                        <span>Shipping/Delivery</span>
+                        <span style="color: #2e7d32; font-weight: 500;">Free</span>
+                    </div>
+
+                    <div style="border-top: 1px solid #eee; margin: 20px 0;"></div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 1.2rem; font-weight: 700; color: #333;">
+                        <span>Total</span>
+                        <span style="color: #2e7d32;">₹<span id="cartPageTotal">0</span></span>
+                    </div>
+
+                    <div id="checkoutError"
+                        style="color: #f44336; font-size: 0.9rem; margin-bottom: 15px; display: none;"></div>
+
+                    <button onclick="checkoutCart()" class="btn btn-primary"
+                        style="width: 100%; justify-content: center; padding: 15px;">
+                        Checkout Now
+                    </button>
+
+                    <div style="margin-top: 15px; font-size: 0.85rem; color: #888; text-align: center;">
+                        <i class="fas fa-lock" style="font-size: 0.8rem;"></i> Secure Payment by Wallet
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+    <script>
+        firebase.initializeApp(firebaseConfig);
+
+        // Initial Check
+        const user = JSON.parse(localStorage.getItem('scrapkart_currentUser'));
+        if (!user) window.location.href = 'auth.html';
+
+        // Load Cart
+        loadCartPage();
+    </script>
+</body>
+
+</html>

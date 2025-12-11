@@ -9,8 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Firebase SDK -->
     <script src="https://www.google.com/recaptcha/api.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.2.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="firebase-config.js"></script>
     <style>
         /* Specific Overrides for Auth Logic Elements to match Green Theme */
@@ -68,6 +69,15 @@
             display: flex;
             gap: 10px;
             align-items: center;
+        }
+
+        /* Success State for Buttons */
+        .btn.success,
+        button.success {
+            background-color: var(--primary-green) !important;
+            color: white !important;
+            border-color: var(--primary-green) !important;
+            cursor: default;
         }
     </style>
 </head>
@@ -251,34 +261,7 @@
         let currentUserType = 'user';
         let currentTab = 'login';
 
-        // Load existing users and admins from localStorage
-        let users = [];
-        let admins = [];
-
-        const savedUsers = localStorage.getItem('drapedrop_users');
-        const savedAdmins = localStorage.getItem('drapedrop_admins');
-
-        if (savedUsers) {
-            users = JSON.parse(savedUsers);
-        } else {
-            // Default users
-            users = [{
-                id: 1, firstName: 'John', lastName: 'Doe', email: 'user@example.com',
-                phone: '9876543210', password: 'user123', type: 'user', createdAt: new Date().toISOString()
-            }];
-            localStorage.setItem('drapedrop_users', JSON.stringify(users));
-        }
-
-        if (savedAdmins) {
-            admins = JSON.parse(savedAdmins);
-        } else {
-            // Default admin
-            admins = [{
-                id: 1, firstName: 'Seller', lastName: 'User', email: 'admin@drapedrop.com',
-                phone: '9876543210', password: 'admin123', type: 'admin', createdAt: new Date().toISOString()
-            }];
-            localStorage.setItem('drapedrop_admins', JSON.stringify(admins));
-        }
+        // LocalStorage initialization logic removed - using Firebase Realtime Database now
 
         function switchTab(tab) {
             currentTab = tab;
@@ -357,12 +340,24 @@
             window.confirmationResult.confirm(code).then(function (result) {
                 var user = result.user;
                 console.log(user);
-                document.getElementById('phoneOtpStatus').textContent = "Verified";
-                document.getElementById('phoneOtpStatus').className = "otp-status success";
+
+                // Clear separate status text as button shows Verified
+                document.getElementById('phoneOtpStatus').textContent = "";
+                document.getElementById('phoneOtpStatus').className = "otp-status";
+
                 document.getElementById('verifyOtpBtn').textContent = "Verified";
                 document.getElementById('verifyOtpBtn').classList.add("success");
+
+                // Stop the timer
+                if (otpTimerInterval) clearInterval(otpTimerInterval);
+                document.getElementById('otpTimerText').style.display = 'none';
+
                 sessionStorage.setItem('otp_phone_verified', 'true');
                 showMessage('registerMessage', "Phone Number Verified Successfully", 'success');
+
+                // Lock the phone number field and send button
+                document.getElementById('registerPhone').disabled = true;
+                document.getElementById('sendOtpBtn').disabled = true;
             }).catch(function (error) {
                 document.getElementById('phoneOtpStatus').textContent = "Invalid";
                 document.getElementById('phoneOtpStatus').className = "otp-status error";
@@ -422,38 +417,33 @@
                 return;
             }
 
-            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
-            let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+            // Use Firebase Database
+            const cleanPhone = phone.replace(/\D/g, ''); // Ensure clean key
+            const dbRef = firebase.database().ref('users/' + cleanPhone);
 
-            if (collection.find(u => u.phone === phone || u.email === email)) {
-                showMessage('registerMessage', "User already exists with this phone or email.", 'error');
-                return;
-            }
+            dbRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    showMessage('registerMessage', "User already exists with this phone number.", 'error');
+                } else {
+                    const newUser = {
+                        id: cleanPhone,
+                        firstName, lastName, email, phone, password,
+                        type: currentUserType,
+                        wallet: 0,
+                        createdAt: new Date().toISOString()
+                    };
 
-            const newUser = {
-                id: Date.now(),
-                firstName, lastName, email, phone, password,
-                type: currentUserType,
-                wallet: 0,
-                createdAt: new Date().toISOString()
-            };
+                    dbRef.set(newUser).then(() => {
+                        // Also update Scrapkart users for consistent local session (if needed for other pages)
+                        // Or ideally, other pages should also migrate. For now, keep local sync for session start.
 
-            collection.push(newUser);
-            localStorage.setItem(collectionName, JSON.stringify(collection));
-
-            // Also update the simple scrapkart users for the other pages
-            let simpleUsers = JSON.parse(localStorage.getItem('scrapkart_users') || '[]');
-            simpleUsers.push({
-                id: newUser.id,
-                name: firstName + ' ' + lastName,
-                phone: phone,
-                password: password,
-                wallet: 0
+                        showMessage('registerMessage', "Registration Successful! Redirecting to login...", 'success');
+                        setTimeout(() => switchTab('login'), 1500);
+                    }).catch(error => {
+                        showMessage('registerMessage', "Database Error: " + error.message, 'error');
+                    });
+                }
             });
-            localStorage.setItem('scrapkart_users', JSON.stringify(simpleUsers));
-
-            showMessage('registerMessage', "Registration Successful! Redirecting to login...", 'success');
-            setTimeout(() => switchTab('login'), 1500);
         }
 
         /* --- LOGIN HANDLER --- */
@@ -462,24 +452,32 @@
             const phone = document.getElementById('loginPhone').value;
             const password = document.getElementById('loginPassword').value;
 
-            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
-            const collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
+            // Login via Firebase Database
+            const cleanPhone = phone.replace(/\D/g, '');
+            const dbRef = firebase.database().ref('users/' + cleanPhone);
 
-            const user = collection.find(u => u.phone === phone && u.password === password);
-
-            if (user) {
-                // Adapt to Scrapkart format
-                const sessionUser = {
-                    id: user.id,
-                    name: user.firstName + ' ' + user.lastName,
-                    phone: user.phone,
-                    wallet: user.wallet || 0 // Ensure wallet exists
-                };
-                localStorage.setItem('scrapkart_currentUser', JSON.stringify(sessionUser));
-                window.location.href = 'dashboard.html';
-            } else {
-                showMessage('loginMessage', "Invalid Phone or Password", 'error');
-            }
+            dbRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    const user = snapshot.val();
+                    if (user.password === password) {
+                        // Adapt to Scrapkart session format
+                        const sessionUser = {
+                            id: cleanPhone,
+                            name: user.firstName + ' ' + user.lastName,
+                            phone: user.phone,
+                            wallet: user.wallet || 0
+                        };
+                        localStorage.setItem('scrapkart_currentUser', JSON.stringify(sessionUser));
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        showMessage('loginMessage', "Invalid Password", 'error');
+                    }
+                } else {
+                    showMessage('loginMessage', "User not found. Please register.", 'error');
+                }
+            }).catch(error => {
+                showMessage('loginMessage', "Error: " + error.message, 'error');
+            });
         }
 
         /* --- FORGOT PASSWORD --- */
@@ -503,18 +501,37 @@
 
         function sendForgotPasswordOtp() {
             const number = document.getElementById('forgotPhone').value;
-            // Simplified logic for demo:
             if (!number) {
                 showMessage('forgotPasswordMessage', "Please enter phone number", 'error');
                 return;
             }
-            firebase.auth().signInWithPhoneNumber(number, window.forgotRecaptchaVerifier)
-                .then((result) => {
-                    window.forgotConfirmationResult = result;
-                    document.getElementById('forgotOtpVerifySection').style.display = 'block';
-                    showMessage('forgotPasswordMessage', "OTP Sent!", 'success');
-                })
-                .catch(err => showMessage('forgotPasswordMessage', err.message, 'error'));
+
+            const cleanPhone = number.replace(/\D/g, '');
+            const dbRef = firebase.database().ref('users/' + cleanPhone);
+
+            dbRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    // User exists, proceed to send OTP
+                    firebase.auth().signInWithPhoneNumber(number, window.forgotRecaptchaVerifier)
+                        .then((result) => {
+                            window.forgotConfirmationResult = result;
+                            document.getElementById('forgotOtpVerifySection').style.display = 'block';
+                            showMessage('forgotPasswordMessage', "OTP Sent!", 'success');
+                        })
+                        .catch(err => {
+                            if (err.code === 'auth/too-many-requests') {
+                                showMessage('forgotPasswordMessage', "Too many requests. Try again later.", 'error');
+                            } else {
+                                showMessage('forgotPasswordMessage', err.message, 'error');
+                            }
+                        });
+                } else {
+                    // User does not exist
+                    showMessage('forgotPasswordMessage', "User not found", 'error');
+                }
+            }).catch(error => {
+                showMessage('forgotPasswordMessage', "Database Error: " + error.message, 'error');
+            });
         }
 
         function verifyForgotPasswordOtp() {
@@ -535,22 +552,29 @@
             const confirmPass = document.getElementById('confirmNewPassword').value;
             const phone = document.getElementById('forgotPhone').value;
 
-            if (newPass.length < 6) return alert("Password too short");
-            if (newPass !== confirmPass) return alert("Passwords differ");
-
-            // Update in storage
-            const collectionName = currentUserType === 'user' ? 'drapedrop_users' : 'drapedrop_admins';
-            let collection = JSON.parse(localStorage.getItem(collectionName) || '[]');
-            const idx = collection.findIndex(u => u.phone === phone);
-
-            if (idx !== -1) {
-                collection[idx].password = newPass;
-                localStorage.setItem(collectionName, JSON.stringify(collection));
-                alert("Password Updated! Please Login.");
-                cancelForgotPassword();
-            } else {
-                alert("User not found locally (Demo Only)");
+            if (newPass.length < 6) {
+                showMessage('forgotPasswordMessage', "Password must be at least 6 characters", 'error');
+                return;
             }
+            if (newPass !== confirmPass) {
+                showMessage('forgotPasswordMessage', "Passwords do not match", 'error');
+                return;
+            }
+
+            // Update in Firebase
+            const cleanPhone = phone.replace(/\D/g, '');
+            const dbRef = firebase.database().ref('users/' + cleanPhone);
+
+            dbRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    dbRef.update({ password: newPass }).then(() => {
+                        showMessage('forgotPasswordMessage', "Password Updated! Redirecting to login...", 'success');
+                        setTimeout(() => cancelForgotPassword(), 2000);
+                    });
+                } else {
+                    showMessage('forgotPasswordMessage', "User not found!", 'error');
+                }
+            });
         }
         // Check for URL parameters to switch tab
         window.addEventListener('DOMContentLoaded', () => {

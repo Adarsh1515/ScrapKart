@@ -1,0 +1,44 @@
+mutation CreateScrapOrder($scrapTypeId: UUID!, $pickupAddress: String!, $pickupDate: Date, $weightKg: Float!) @auth(level: USER) {
+  scrapOrder_insert(data: {
+    scrapTypeId: $scrapTypeId,
+    userId_expr: "auth.uid",
+    pickupAddress: $pickupAddress,
+    pickupDate: $pickupDate,
+    status: "pending",
+    weightKg: $weightKg,
+    calculatedPrice: 0.0
+  })
+}
+
+query GetProducts @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  products {
+    id
+    name
+    description
+    price
+    imageUrl
+    category
+    stockQuantity
+  }
+}
+
+query GetScrapOrdersByUser @auth(level: USER) {
+  scrapOrders(where: {userId: {eq_expr: "auth.uid"}}) {
+    id
+    scrapType {
+      id
+      name
+      pricePerKg
+    }
+    weightKg
+    calculatedPrice
+    pickupAddress
+    pickupDate
+    status
+    createdAt
+  }
+}
+
+mutation UpdateProductStockQuantity($id: UUID!, $stockQuantity: Int!) @auth(expr: "auth.token.admin == true") {
+  product_update(key: {id: $id}, data: {stockQuantity: $stockQuantity})
+}
