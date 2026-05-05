@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard - Scrapkart</title>
+    <link rel="stylesheet" href="../Scrapkart/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            width: 250px;
+            background: #004d40;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar .logo {
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #26a69a;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            background: #f4f7f6;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .pickup-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            border-left: 4px solid #26a69a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wallet-banner {
+            background: linear-gradient(135deg, #00796b, #004d40);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-update {
+            background: #e0f2f1;
+            color: #00796b;
+            border: 1px solid #00796b;
+        }
+
+        .btn-update:hover {
+            background: #00796b;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo"><i class="fas fa-truck-moving"></i> Agent Portal</div>
+        <div class="menu-item active" onclick="switchTab('pickups', this)"><i class="fas fa-tasks"></i> Assigned Pickups
+        </div>
+        <div class="menu-item" onclick="switchTab('wallet', this)"><i class="fas fa-wallet"></i> My Wallet</div>
+        <div style="flex-grow: 1;"></div>
+        <div class="menu-item" onclick="logoutAgent()" style="color: #ffccbc;"><i class="fas fa-sign-out-alt"></i>
+            Logout</div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h2>Welcome, <span id="agentNameDisplay">Agent</span></h2>
+            <div>
+                <span class="badge" style="background: #e0f2f1; color: #00796b; font-size: 1rem;"><i
+                        class="fas fa-star"></i> Active</span>
+            </div>
+        </div>
+
+        <!-- Pickups Section -->
+        <div id="section-pickups" class="content-section active">
+            <h3 style="margin-bottom: 20px;">Your Tasks</h3>
+            <div id="pickupsList">
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <div class="spinner"></div> Loading assignments...
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Section -->
+        <div id="section-wallet" class="content-section">
+            <div class="wallet-banner">
+                <div>
+                    <h3 style="opacity: 0.9; font-weight: 500;">Available Balance</h3>
+                    <div style="font-size: 3rem; font-weight: bold; margin: 10px 0;">₹<span
+                            id="agentWalletBalance">0</span></div>
+                    <p>Earn ₹50 per successful pickup!</p>
+                </div>
+                <button class="btn btn-secondary" onclick="redeemAgentWallet()"
+                    style="border: none; padding: 12px 24px; border-radius: 30px; font-weight: bold;">
+                    Redeem to Bank <i class="fas fa-university"></i>
+                </button>
+            </div>
+
+            <h3 style="margin-bottom: 20px;">Transaction History</h3>
+            <div id="agentTransactionsList">
+                <!-- Transactions populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="../Scrapkart/firebase-config.js"></script>
+    <script>firebase.initializeApp(firebaseConfig);</script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('scrapkart_currentAgent')) {
+                window.location.href = 'index.html';
+                return;
+            }
+            initAgentDashboard();
+        });
+
+        function switchTab(tab, el) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section-' + tab).classList.add('active');
+
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            el.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>
