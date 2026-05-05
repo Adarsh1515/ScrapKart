@@ -1,11 +1,11 @@
 /* Global Data Management */
 const PRODUCTS = [
-    { id: 1, name: "Recycled Notebook (Set of 3)", price: 150, image: "notebook.png" },
-    { id: 2, name: "Eco-Friendly Pen Stand", price: 200, image: "pen_stand.png" },
-    { id: 3, name: "Metal Art Sculpture", price: 1200, image: "metal_art.png" },
-    { id: 4, name: "Recycled Plastic Basket", price: 350, image: "plastic_basket.png" },
-    { id: 5, name: "Paper Mache Decorative Bowl", price: 450, image: "paper_bowl.png" },
-    { id: 6, name: "Upcycled Denim Bag", price: 600, image: "denim_bag.png" },
+    { id: 1, name: "Recycled Notebook (Set of 3)", price: 150, image: "assets/notebook.png" },
+    { id: 2, name: "Eco-Friendly Pen Stand", price: 200, image: "assets/pen_stand.png" },
+    { id: 3, name: "Metal Art Sculpture", price: 1200, image: "assets/metal_art.png" },
+    { id: 4, name: "Recycled Plastic Basket", price: 350, image: "assets/plastic_basket.png" },
+    { id: 5, name: "Paper Mache Decorative Bowl", price: 450, image: "assets/paper_bowl.png" },
+    { id: 6, name: "Upcycled Denim Bag", price: 600, image: "assets/denim_bag.png" },
 ];
 
 /* --- AUTHENTICATION --- */
@@ -118,22 +118,212 @@ function showSection(sectionId) {
     if (sectionId === 'orders') loadOrders();
 }
 
+function toggleWeightInput(type) {
+    const checkbox = document.getElementById(`check_${type}`);
+    const container = document.getElementById(`weight_container_${type}`);
+    const weightInput = document.getElementById(`weight_${type}`);
+    if (checkbox.checked) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+        weightInput.value = ''; // Reset weight if unchecked
+    }
+}
+
 function calculatePrice() {
-    const typeSelect = document.getElementById('scrapType');
-    const weightInput = document.getElementById('scrapWeight');
     const priceDisplay = document.getElementById('calculatedPrice');
+    const types = ['paper', 'plastic', 'metal', 'ewaste'];
+    let total = 0;
 
-    const pricePerKg = typeSelect.selectedOptions[0]?.getAttribute('data-price') || 0;
-    const weight = weightInput.value || 0;
+    types.forEach(type => {
+        const checkbox = document.getElementById(`check_${type}`);
+        const weightInput = document.getElementById(`weight_${type}`);
+        
+        if (checkbox && checkbox.checked) {
+            const pricePerKg = parseFloat(checkbox.getAttribute('data-price')) || 0;
+            const weight = parseFloat(weightInput.value) || 0;
+            total += (pricePerKg * weight);
+        }
+    });
 
-    const total = pricePerKg * weight;
     priceDisplay.innerText = total;
 }
 
+window.uploadedScrapImageBase64 = null;
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewImg = document.getElementById('previewImg');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Compress/Resize image slightly
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Get compressed Base64
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                window.uploadedScrapImageBase64 = compressedBase64;
+                
+                // Show preview
+                previewImg.src = compressedBase64;
+                previewContainer.style.display = 'block';
+
+                // Call AI Detection
+                detectScrapWithAI(compressedBase64);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        window.uploadedScrapImageBase64 = null;
+        previewContainer.style.display = 'none';
+        previewImg.src = '';
+        const aiFeedback = document.getElementById('aiFeedback');
+        if(aiFeedback) aiFeedback.style.display = 'none';
+    }
+}
+
+async function detectScrapWithAI(base64Image) {
+    const aiFeedback = document.getElementById('aiFeedback');
+    const aiFeedbackText = document.getElementById('aiFeedbackText');
+    
+    if (!aiFeedback) return;
+    
+    aiFeedback.style.display = 'block';
+    aiFeedback.style.color = '#1976d2';
+    aiFeedbackText.innerHTML = 'Detecting scrap items...';
+    
+    try {
+        const GEMINI_API_KEY = 'AIzaSyDQ2ubCzT99kCXNvCYiu9kxp8bWhxi1KCg';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const base64Data = base64Image.split(',')[1];
+        
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: "Analyze this image and identify ALL types of scrap materials present. Reply with a comma-separated list using ONLY these exact words: paper, plastic, metal, ewaste. If none are found, reply with 'unknown'." },
+                    {
+                        inlineData: {
+                            mimeType: "image/jpeg",
+                            data: base64Data
+                        }
+                    }
+                ]
+            }]
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates.length > 0) {
+            let detectedText = data.candidates[0].content.parts[0].text.trim().toLowerCase();
+            const detectedItems = detectedText.split(',').map(item => item.trim().replace(/[^a-z]/g, ''));
+            
+            const validTypes = ['paper', 'plastic', 'metal', 'ewaste'];
+            let detectedCount = 0;
+            let detectedNames = [];
+
+            validTypes.forEach(type => {
+                const checkbox = document.getElementById(`check_${type}`);
+                if (checkbox && detectedItems.includes(type)) {
+                    checkbox.checked = true;
+                    toggleWeightInput(type);
+                    detectedCount++;
+                    detectedNames.push(type.charAt(0).toUpperCase() + type.slice(1));
+                }
+            });
+
+            calculatePrice();
+            
+            if (detectedCount > 0) {
+                aiFeedback.style.color = '#2e7d32';
+                aiFeedbackText.innerHTML = `✨ Auto-detected: ${detectedNames.join(', ')}. Please enter weights.`;
+            } else {
+                aiFeedback.style.color = '#f57c00';
+                aiFeedbackText.innerHTML = "Could not automatically detect specific items. Please select manually.";
+            }
+        } else {
+            aiFeedback.style.color = '#f57c00';
+            aiFeedbackText.innerHTML = "Could not automatically detect specific items. Please select manually.";
+        }
+    } catch (error) {
+        console.error("AI Detection Error:", error);
+        aiFeedback.style.color = '#d32f2f';
+        aiFeedbackText.innerHTML = "Error analyzing image.";
+    }
+}
+
+function showErrorPopup(message) {
+    let modal = document.getElementById('errorPopupModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'errorPopupModal';
+        modal.style.cssText = 'position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;';
+        
+        modal.innerHTML = `
+            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 90%; width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transform: translateY(-20px); transition: transform 0.3s;">
+                <div style="color: #f57c00; font-size: 3rem; margin-bottom: 15px;"><i class="fas fa-exclamation-circle"></i></div>
+                <h3 style="margin-bottom: 10px; color: #333;">Action Required</h3>
+                <p id="errorPopupMessage" style="color: #666; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5;"></p>
+                <button onclick="document.getElementById('errorPopupModal').style.opacity = '0'; setTimeout(() => document.getElementById('errorPopupModal').style.display = 'none', 300);" style="background: #1976d2; color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: background 0.2s;" onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">Got it</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('errorPopupMessage').innerText = message;
+    modal.style.display = 'flex';
+    // Trigger animation
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.querySelector('div').style.transform = 'translateY(0)';
+    }, 10);
+}
+
 function goToAddress() {
-    const weight = document.getElementById('scrapWeight').value;
-    if (!weight || weight <= 0) {
-        alert("Please enter a valid weight.");
+    const types = ['paper', 'plastic', 'metal', 'ewaste'];
+    let hasValidWeight = false;
+
+    types.forEach(type => {
+        const checkbox = document.getElementById(`check_${type}`);
+        const weightInput = document.getElementById(`weight_${type}`);
+        if (checkbox && checkbox.checked && parseFloat(weightInput.value) > 0) {
+            hasValidWeight = true;
+        }
+    });
+
+    if (!hasValidWeight) {
+        showErrorPopup("Please select at least one scrap item and enter its weight before continuing.");
         return;
     }
 
@@ -190,66 +380,6 @@ function backToCalc() {
     }
 }
 
-function placeScrapOrder() {
-    const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
-    if (!selectedRadio) {
-        alert("Please select a pickup address.");
-        return;
-    }
-
-    const date = document.getElementById('pickupDate').value;
-    if (!date) {
-        alert("Please select a pickup date.");
-        return;
-    }
-
-    const addressId = selectedRadio.value; // String ID from Firebase
-    const user = JSON.parse(localStorage.getItem('scrapkart_currentUser'));
-
-    // Fetch address details from Firebase
-    firebase.database().ref('users/' + user.id + '/addresses/' + addressId).once('value').then(snapshot => {
-        const selectedAddressObj = snapshot.val();
-        if (!selectedAddressObj) {
-            alert("Selected address not found.");
-            return;
-        }
-
-        const typeSelect = document.getElementById('scrapType');
-        const weightInput = document.getElementById('scrapWeight');
-        const itemType = typeSelect.options[typeSelect.selectedIndex].text;
-        const pricePerKg = typeSelect.selectedOptions[0].getAttribute('data-price');
-        const weight = weightInput.value;
-        const price = pricePerKg * weight;
-
-        const order = {
-            id: Date.now(),
-            userId: user.id,
-            type: 'sell',
-            item: `${weight}kg ${itemType}`,
-            price: price,
-            address: selectedAddressObj.text, // Assuming text is still useful
-            fullAddressData: selectedAddressObj, // Store full object for future proofing
-            date: date,
-            status: 'Completed', // Instant completion for demo?
-            createdAt: new Date().toLocaleDateString()
-        };
-
-        let orders = JSON.parse(localStorage.getItem('scrapkart_orders') || '[]');
-        orders.push(order);
-        localStorage.setItem('scrapkart_orders', JSON.stringify(orders));
-
-        // Credit Wallet
-        updateWallet(order.price, 'Credit', `Sold ${weight}kg ${itemType} `);
-
-        // Show Success
-        document.getElementById('sell-step-3').style.display = 'none';
-        document.getElementById('sell-step-4').style.display = 'block';
-        document.getElementById('finalPriceDisplay').innerText = '₹' + price;
-    }).catch(err => {
-        console.error(err);
-        alert("Failed to place order. Please try again.");
-    });
-}
 
 let editingAddressId = null;
 
@@ -499,7 +629,7 @@ function renderAddressSelection() {
 function placeScrapOrder() {
     const selectedRadio = document.querySelector('input[name="selectedAddress"]:checked');
     if (!selectedRadio) {
-        alert("Please select a pickup address.");
+        showErrorPopup("Please select a pickup address.");
         return;
     }
 
@@ -520,32 +650,56 @@ function placeScrapOrder() {
             return;
         }
 
-        // Calculator Data
-        const typeSelect = document.getElementById('scrapType');
+        // Multi-item Data
         const price = document.getElementById('calculatedPrice').innerText;
-        const weight = document.getElementById('scrapWeight').value;
-        const itemType = typeSelect.value;
-        const itemTypeName = typeSelect.options[typeSelect.selectedIndex].text;
+        
+        const types = ['paper', 'plastic', 'metal', 'ewaste'];
+        let items = [];
+        let totalWeight = 0;
+
+        types.forEach(type => {
+            const checkbox = document.getElementById(`check_${type}`);
+            const weightInput = document.getElementById(`weight_${type}`);
+            
+            if (checkbox && checkbox.checked) {
+                const w = parseFloat(weightInput.value) || 0;
+                const p = parseFloat(checkbox.getAttribute('data-price')) || 0;
+                if (w > 0) {
+                    items.push({
+                        type: type,
+                        name: type.charAt(0).toUpperCase() + type.slice(1),
+                        weight: w,
+                        price: w * p
+                    });
+                    totalWeight += w;
+                }
+            }
+        });
+
+        if (items.length === 0) {
+            showErrorPopup("Please select at least one scrap item and enter its weight.");
+            return;
+        }
 
         const order = {
             id: Date.now(),
             userId: user.id,
             type: 'sell',
-            item: itemTypeName,
-            weight: weight,
+            item: items.length === 1 ? items[0].name : 'Multiple Items',
+            weight: totalWeight,
             price: parseInt(price),
+            items: items,
             address: selectedAddressObj.text,
             customerName: selectedAddressObj.name,
             customerPhone: selectedAddressObj.phone,
             date: date,
-            status: 'Completed',
-            createdAt: new Date().toLocaleDateString()
+            status: 'Order Confirmed',
+            createdAt: new Date().toLocaleDateString(),
+            image: window.uploadedScrapImageBase64 || null
         };
 
         // Save Order to Firebase
         firebase.database().ref('users/' + user.id + '/orders/' + order.id).set(order).then(() => {
-            // Credit Wallet (Local)
-            updateWallet(order.price, 'Credit', `Sold ${weight}kg ${itemType} `);
 
             // Show Success
             document.getElementById('sell-step-3').style.display = 'none';
@@ -566,6 +720,13 @@ function resetSellFlow() {
     document.getElementById('calculatedPrice').innerText = '0';
     document.getElementById('pickupDate').value = '';
     document.getElementById('scrapType').selectedIndex = 0;
+    
+    // Reset image
+    const imageInput = document.getElementById('scrapImageInput');
+    if(imageInput) imageInput.value = '';
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    if(previewContainer) previewContainer.style.display = 'none';
+    window.uploadedScrapImageBase64 = null;
 }
 
 
@@ -772,6 +933,9 @@ function loadOrders() {
                      <button onclick="viewOrder(${o.id})" style="background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #555; font-size: 0.85rem; transition: all 0.2s;">
                         <i class="fas fa-eye"></i> View
                      </button>
+                     ${isSell ? `<button onclick="trackOrder(${o.id})" style="background: #e8f5e9; border: 1px solid #2e7d32; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #2e7d32; font-size: 0.85rem; transition: all 0.2s; font-weight: 500;">
+                        <i class="fas fa-route"></i> Track
+                     </button>` : ''}
                  </div>
             </div>
         </div>
@@ -800,8 +964,8 @@ function viewOrder(orderId) {
                 <strong style="font-size: 1.1rem; color: #333;">Order #${order.id}</strong>
                 <div style="color: #888; font-size: 0.9rem;">${order.date}</div>
             </div>
-            <div style="padding: 5px 12px; background: ${order.status === 'Completed' || order.status === 'Purchased' ? '#e8f5e9' : '#fff3e0'}; color: ${order.status === 'Completed' || order.status === 'Purchased' ? '#2e7d32' : '#f57c00'}; border-radius: 20px; font-size: 0.85rem; height: fit-content;">
-                ${order.status}
+            <div style="padding: 5px 12px; background: ${order.status === 'Completed' || order.status === 'Money added to wallet' || order.status === 'Purchased' ? '#e8f5e9' : '#fff3e0'}; color: ${order.status === 'Completed' || order.status === 'Money added to wallet' || order.status === 'Purchased' ? '#2e7d32' : '#f57c00'}; border-radius: 20px; font-size: 0.85rem; height: fit-content; text-align: center;">
+                ${order.status === 'Completed' ? 'Money added to wallet' : order.status}
             </div>
         </div>
 
@@ -832,6 +996,13 @@ function viewOrder(orderId) {
             </tr>
         </table>
 
+        ${order.image ? `
+        <div style="margin-bottom: 20px; text-align: center;">
+            <div style="font-weight: 600; margin-bottom: 10px; color: #555; text-align: left;">Scrap Image:</div>
+            <img src="${order.image}" alt="Scrap" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
+
         <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
             <div style="font-weight: 600; margin-bottom: 5px; color: #555;">${isSell ? 'Pickup Address' : 'Delivery Address'}</div>
             <div style="color: #666; font-size: 0.95rem;">${order.address || 'N/A'}</div>
@@ -840,6 +1011,61 @@ function viewOrder(orderId) {
 
     content.innerHTML = details;
     document.getElementById('orderDetailModal').style.display = 'block';
+}
+
+function trackOrder(orderId) {
+    let orders = window.userOrdersCache || [];
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+        alert("Order details not found.");
+        return;
+    }
+
+    const content = document.getElementById('trackingContent');
+
+    // Tracking Logic
+    const trackingSteps = ['Order Confirmed', 'Assigned to Agent', 'Agent on the way for pickup', 'Pickuped', 'Money added to wallet'];
+    let currentStatusIndex = trackingSteps.indexOf(order.status);
+    
+    // Fallback for old orders
+    if (order.status === 'Completed' || order.status === 'Purchased') {
+        currentStatusIndex = trackingSteps.length - 1; 
+    } else if (currentStatusIndex === -1) {
+        currentStatusIndex = 0; // Default to first step if unknown
+    }
+
+    let timelineHtml = '<ul class="tracking-timeline">';
+    trackingSteps.forEach((step, index) => {
+        let stateClass = '';
+        if (index < currentStatusIndex) {
+            stateClass = 'completed';
+        } else if (index === currentStatusIndex) {
+            stateClass = 'current';
+        } else {
+            stateClass = '';
+        }
+        timelineHtml += `
+            <li class="tracking-step ${stateClass}">
+                <div class="icon"></div>
+                <div class="text">${step}</div>
+            </li>
+        `;
+    });
+    timelineHtml += '</ul>';
+
+    const headerContent = `
+        <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #eee;">
+            <strong style="font-size: 1.1rem; color: #333;">Order #${order.id}</strong>
+            <div style="color: #888; font-size: 0.9rem; margin-top: 4px;">Item: ${order.item}</div>
+        </div>
+    `;
+
+    content.innerHTML = headerContent + timelineHtml;
+    document.getElementById('trackingModal').style.display = 'block';
+}
+
+function closeTrackingModal() {
+    document.getElementById('trackingModal').style.display = 'none';
 }
 
 function closeOrderModal() {
@@ -1517,4 +1743,3 @@ window.loadPaymentPage = loadPaymentPage;
 window.toggleWallet = toggleWallet;
 window.selectExternalPayment = selectExternalPayment;
 window.processPayment = processPayment;
-

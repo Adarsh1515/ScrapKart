@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Scrapkart</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Use existing firebase config -->
+    <script src="../Scrapkart/firebase-config.js"></script>
+</head>
+
+<body>
+
+    <!-- Admin Login Screen -->
+    <div id="adminLoginScreen" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f4f7f6;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px;">
+            <div style="font-size: 3rem; color: #d32f2f; margin-bottom: 20px;"><i class="fas fa-user-shield"></i></div>
+            <h2 style="margin-bottom: 20px; color: #333;">Admin Authentication</h2>
+            <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem;">
+            <button onclick="handleAdminLogin()" style="width: 100%; padding: 12px; background: #d32f2f; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#b71c1c'" onmouseout="this.style.background='#d32f2f'">Login</button>
+            <p id="adminLoginError" style="color: #d32f2f; margin-top: 15px; font-size: 0.9rem; display: none;">Incorrect password.</p>
+            <div style="margin-top: 20px;">
+                <a href="../Scrapkart/index.html" style="color: #666; text-decoration: none; font-size: 0.9rem;"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard wrapper -->
+    <div id="adminDashboardWrapper" style="display: none;">
+
+    <header class="admin-header">
+        <h1><i class="fas fa-shield-alt"></i> Scrapkart Admin</h1>
+        <a href="../Scrapkart/index.html" class="back-link"><i class="fas fa-sign-out-alt"></i> Back to Main Site</a>
+    </header>
+
+    <div class="admin-container">
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="info">
+                    <h3 id="totalUsersCount">0</h3>
+                    <p>Total Registered Users</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="info">
+                    <h3 id="activeWalletsCount">0</h3>
+                    <p>Active Wallets</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <!-- TABS -->
+            <div class="admin-tabs"
+                style="display: flex; background: #fafbfc; border-bottom: 1px solid var(--border-color);">
+                <button class="admin-tab active" onclick="switchAdminTab('users')" id="btn-tab-users"
+                    style="flex: 1; padding: 15px 25px; border: none; background: transparent; font-weight: 600; font-size: 1rem; color: var(--primary-green); border-bottom: 3px solid var(--primary-green); cursor: pointer; transition: all 0.3s;"><i
+                        class="fas fa-users"></i> Users</button>
+                <button class="admin-tab" onclick="switchAdminTab('addresses')" id="btn-tab-addresses"
+                    style="flex: 1; padding: 15px 25px; border: none; background: transparent; font-weight: 600; font-size: 1rem; color: var(--text-light); border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.3s;"><i
+                        class="fas fa-map-marker-alt"></i> Addresses</button>
+                <button class="admin-tab" onclick="switchAdminTab('orders')" id="btn-tab-orders"
+                    style="flex: 1; padding: 15px 25px; border: none; background: transparent; font-weight: 600; font-size: 1rem; color: var(--text-light); border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.3s;"><i
+                        class="fas fa-shopping-bag"></i> Orders</button>
+                <button class="admin-tab" onclick="switchAdminTab('agents')" id="btn-tab-agents"
+                    style="flex: 1; padding: 15px 25px; border: none; background: transparent; font-weight: 600; font-size: 1rem; color: var(--text-light); border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.3s;"><i
+                        class="fas fa-truck-moving"></i> Agents</button>
+            </div>
+
+            <!-- USERS SECTION -->
+            <div id="section-users" class="tab-section">
+                <div class="table-header">
+                    <h2><i class="fas fa-list"></i> Registered Users Directory</h2>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInputUsers" placeholder="Search users by name or phone..."
+                            onkeyup="filterTable('usersTable', 'searchInputUsers')">
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone Number</th>
+                                <th>Email Address</th>
+                                <th>Role</th>
+                                <th>Wallet Bal.</th>
+                                <th>Registration Date</th>
+                                <th>Password (Hidden)</th>
+                                <th>Address</th>
+                                <th>Orders</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr id="loadingRowUsers">
+                                <td colspan="10">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                        <p>Loading user data from Firebase...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ADDRESSES SECTION -->
+            <div id="section-addresses" class="tab-section" style="display: none;">
+                <div class="table-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> User Addresses</h2>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInputAddresses" placeholder="Search addresses by name or phone..."
+                            onkeyup="filterTable('addressesTable', 'searchInputAddresses')">
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="addressesTable">
+                        <thead>
+                            <tr>
+                                <th>User Name</th>
+                                <th>Contact Name</th>
+                                <th>Phone Number</th>
+                                <th>Address Type</th>
+                                <th>Full Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addressesTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ORDERS SECTION -->
+            <div id="section-orders" class="tab-section" style="display: none;">
+                <div class="table-header">
+                    <h2><i class="fas fa-shopping-bag"></i> User Orders</h2>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInputOrders" placeholder="Search orders by item or name..."
+                            onkeyup="filterTable('ordersTable', 'searchInputOrders')">
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer Name</th>
+                                <th>Customer Phone</th>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Address</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- AGENTS SECTION -->
+            <div id="section-agents" class="tab-section" style="display: none;">
+                <div class="table-header">
+                    <h2><i class="fas fa-truck-moving"></i> Registered Agents</h2>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInputAgents" placeholder="Search agents..."
+                            onkeyup="filterTable('agentsTable', 'searchInputAgents')">
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="agentsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone Number</th>
+                                <th>Status</th>
+                                <th>Wallet Bal.</th>
+                                <th>Registration Date</th>
+                                <th>Aadhar No.</th>
+                                <th>Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agentsTableBody">
+                            <tr id="loadingRowAgents">
+                                <td colspan="8">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                        <p>Loading agent data from Firebase...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Assign Agent Modal -->
+    <div id="assignAgentModal" class="modal"
+        style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background-color: white; margin: 15% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 15px; color: var(--primary-green);">Assign Pickup Agent</h3>
+            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">Select an active agent to fulfill this
+                order.</p>
+            <input type="hidden" id="assignOrderId">
+            <input type="hidden" id="assignUserPhone">
+            <select id="agentSelect"
+                style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #ddd;">
+                <option value="">Select an Agent...</option>
+                <!-- Populated dynamically -->
+            </select>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('assignAgentModal').style.display='none'"
+                    style="padding: 8px 16px; border: none; background: #eee; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button onclick="confirmAssignAgent()"
+                    style="padding: 8px 16px; border: none; background: var(--primary-green); color: white; border-radius: 6px; cursor: pointer;">Assign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-circle"></i> User Details</h2>
+                <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="modalBodyContent">
+                <!-- Details injected here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aadhar Document Modal -->
+    <div id="aadharModal" class="modal-overlay"
+        onclick="if(event.target === this) document.getElementById('aadharModal').style.display='none'">
+        <div class="modal-content" style="max-width: 800px; width: 90%;">
+            <div class="modal-header">
+                <h2><i class="fas fa-id-card"></i> Agent Aadhar Document</h2>
+                <button class="close-modal" onclick="document.getElementById('aadharModal').style.display='none'"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 20px;" id="aadharModalContent">
+                <!-- Image or PDF here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close"
+                    onclick="document.getElementById('aadharModal').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal"
+        style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background-color: white; margin: 15% auto; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;">
+            <div style="margin-bottom: 15px; color: var(--primary-green); font-size: 3rem;"><i
+                    class="fas fa-question-circle"></i></div>
+            <h3 id="confirmModalTitle" style="margin-bottom: 10px; color: #333; font-size: 1.4rem;">Confirm Action</h3>
+            <p id="confirmModalDesc" style="margin-bottom: 25px; color: #666; font-size: 1rem; line-height: 1.5;">Are
+                you sure?</p>
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <button onclick="document.getElementById('confirmModal').style.display='none'"
+                    style="padding: 10px 25px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-weight: 600; color: #555; transition: background 0.2s;"
+                    onmouseover="this.style.background='#e0e0e0'"
+                    onmouseout="this.style.background='#eee'">Cancel</button>
+                <button id="confirmModalBtn"
+                    style="padding: 10px 25px; border: none; background: var(--primary-green); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s;"
+                    onmouseover="this.style.background='#27692a'"
+                    onmouseout="this.style.background='var(--primary-green)'">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toast Notification Function
+        function showToast(message, type = 'success') {
+            let toast = document.getElementById('adminToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'adminToast';
+                toast.style.cssText = 'visibility: hidden; min-width: 250px; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 9999; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px; transition: visibility 0.5s, opacity 0.5s, bottom 0.5s; opacity: 0; color: #fff;';
+                document.body.appendChild(toast);
+            }
+
+            if (type === 'success') {
+                toast.style.backgroundColor = '#2e7d32';
+                toast.innerHTML = `<i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> <span>${message}</span>`;
+            } else if (type === 'error') {
+                toast.style.backgroundColor = '#d32f2f';
+                toast.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 1.2rem;"></i> <span>${message}</span>`;
+            } else {
+                toast.style.backgroundColor = '#333';
+                toast.innerHTML = `<i class="fas fa-info-circle" style="font-size: 1.2rem;"></i> <span>${message}</span>`;
+            }
+
+            toast.style.visibility = 'visible';
+            toast.style.opacity = '1';
+            toast.style.bottom = '50px';
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.bottom = '30px';
+                setTimeout(() => {
+                    toast.style.visibility = 'hidden';
+                }, 500);
+            }, 3000);
+        }
+
+        // Custom Confirmation Modal Function
+        function showConfirmModal(title, description, onConfirm) {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalDesc').textContent = description;
+            const confirmBtn = document.getElementById('confirmModalBtn');
+
+            // Remove old event listeners by cloning the button
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+            newBtn.onclick = function () {
+                document.getElementById('confirmModal').style.display = 'none';
+                if (onConfirm) onConfirm();
+            };
+
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        let allUsersData = {};
+        let allAgentsData = {};
+        // Admin Auth Logic
+        function handleAdminLogin() {
+            const pwd = document.getElementById('adminPasswordInput').value;
+            if (pwd === 'adarsh') {
+                sessionStorage.setItem('scrapkart_admin_auth', 'true');
+                document.getElementById('adminLoginScreen').style.display = 'none';
+                document.getElementById('adminDashboardWrapper').style.display = 'block';
+                fetchUsersFromFirebase();
+            } else {
+                document.getElementById('adminLoginError').style.display = 'block';
+            }
+        }
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('scrapkart_admin_auth') === 'true') {
+                document.getElementById('adminLoginScreen').style.display = 'none';
+                document.getElementById('adminDashboardWrapper').style.display = 'block';
+                fetchUsersFromFirebase();
+            }
+        });
+
+        function fetchUsersFromFirebase() {
+            const tableBody = document.getElementById('usersTableBody');
+            const addressesTableBody = document.getElementById('addressesTableBody');
+            const ordersTableBody = document.getElementById('ordersTableBody');
+
+            const totalUsersElem = document.getElementById('totalUsersCount');
+            const activeWalletsElem = document.getElementById('activeWalletsCount');
+
+            // Reference to 'users' node in Firebase Realtime Database
+            const usersRef = firebase.database().ref('users');
+
+            // Listen for data changes in real-time
+            usersRef.on('value', (snapshot) => {
+                tableBody.innerHTML = ''; // Clear loading/existing rows
+                addressesTableBody.innerHTML = '';
+                ordersTableBody.innerHTML = '';
+
+                const users = snapshot.val();
+                allUsersData = users || {};
+                let userCount = 0;
+                let walletCount = 0;
+                let hasAddresses = false;
+                let hasOrders = false;
+                let allOrdersArray = [];
+
+                if (users) {
+                    // Iterate through all users in the object
+                    for (const phoneKey in users) {
+                        if (users.hasOwnProperty(phoneKey)) {
+                            const user = users[phoneKey];
+                            userCount++;
+
+                            if (user.wallet && parseFloat(user.wallet) > 0) {
+                                walletCount++;
+                            }
+
+                            // Format Date
+                            let formattedDate = 'N/A';
+                            if (user.createdAt) {
+                                const d = new Date(user.createdAt);
+                                formattedDate = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+
+                            // Determine role badge class
+                            let roleClass = 'user';
+                            if (user.type === 'admin') roleClass = 'admin';
+                            if (user.type === 'delivery') roleClass = 'delivery';
+
+                            // Count addresses and orders
+                            let userAddressesCount = 0;
+                            if (user.addresses) {
+                                userAddressesCount = Object.keys(user.addresses).length;
+                            }
+                            let userOrdersCount = 0;
+                            if (user.orders) {
+                                userOrdersCount = Object.keys(user.orders).length;
+                            }
+
+                            // Create row for Users Table
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>
+                                    <div class="user-name">${user.firstName || 'N/A'} ${user.lastName || ''}</div>
+                                </td>
+                                <td>${user.phone || phoneKey}</td>
+                                <td>${user.email || 'N/A'}</td>
+                                <td><span class="badge ${roleClass}">${user.type || 'user'}</span></td>
+                                <td>₹${user.wallet || '0'}</td>
+                                <td>${formattedDate}</td>
+                                <td>
+                                    <span style="filter: blur(4px); user-select: none;" title="Double click to reveal" ondblclick="this.style.filter='none'">${user.password || '******'}</span>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    <button class="action-btn" title="View Addresses" onclick="viewUserAddresses('${phoneKey}')" style="margin-right: 8px; font-size: 0.9rem; vertical-align: middle;"><i class="fas fa-eye"></i></button>
+                                    <span class="badge" style="background: #e3f2fd; color: #1976d2; vertical-align: middle;">${userAddressesCount}</span>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    <button class="action-btn" title="View Orders" onclick="viewUserOrders('${phoneKey}')" style="margin-right: 8px; font-size: 0.9rem; vertical-align: middle;"><i class="fas fa-eye"></i></button>
+                                    <span class="badge" style="background: #fff3e0; color: #f57c00; vertical-align: middle;">${userOrdersCount}</span>
+                                </td>
+                                <td>
+                                    <button class="action-btn" title="View Details" onclick="openUserDetailsModal('${phoneKey}')"><i class="fas fa-eye"></i></button>
+                                </td>
+                            `;
+                            tableBody.appendChild(tr);
+
+                            // Populate Addresses
+                            if (user.addresses) {
+                                for (const addrKey in user.addresses) {
+                                    hasAddresses = true;
+                                    const addr = user.addresses[addrKey];
+                                    const trAddr = document.createElement('tr');
+                                    trAddr.setAttribute('data-user-phone', phoneKey);
+                                    trAddr.innerHTML = `
+                                        <td><div class="user-name">${user.firstName || 'N/A'}</div></td>
+                                        <td>${addr.name || 'N/A'}</td>
+                                        <td>${addr.phone || 'N/A'}</td>
+                                        <td><span class="badge" style="background: #e8f5e9; color: #2e7d32;">${addr.type || 'Home'}</span></td>
+                                        <td>${addr.text || 'N/A'}</td>
+                                    `;
+                                    addressesTableBody.appendChild(trAddr);
+                                }
+                            }
+
+                            // Populate Orders
+                            if (user.orders) {
+                                for (const ordKey in user.orders) {
+                                    hasOrders = true;
+                                    const ord = user.orders[ordKey];
+                                    ord._phoneKey = phoneKey;
+                                    ord._ordKey = ordKey;
+                                    ord._firstName = user.firstName;
+                                    ord._phone = user.phone;
+                                    allOrdersArray.push(ord);
+                                }
+                            }
+                        }
+                    }
+
+                    // Sort orders by ID descending (newest first)
+                    allOrdersArray.sort((a, b) => {
+                        const idA = a.id || 0;
+                        const idB = b.id || 0;
+                        return idB - idA;
+                    });
+
+                    // Render sorted orders
+                    allOrdersArray.forEach(ord => {
+                        const isCompleted = ord.status === 'Completed' || ord.status === 'Purchased';
+                        const trOrd = document.createElement('tr');
+                        trOrd.setAttribute('data-user-phone', ord._phoneKey);
+                        trOrd.innerHTML = `
+                            <td>#${ord.id || ord._ordKey}</td>
+                            <td><div class="user-name">${ord.customerName || ord._firstName || 'N/A'}</div></td>
+                            <td>${ord.customerPhone || ord._phone || 'N/A'}</td>
+                            <td>
+                                ${ord.items ? 
+                                    ord.items.map(i => `<div style="font-size: 0.85rem; margin-bottom: 2px;">• ${i.name} (${i.weight}kg)</div>`).join('') 
+                                    : (ord.item || 'N/A')
+                                }
+                                ${ord.image ? `<img src="${ord.image}" alt="Scrap" style="max-width: 60px; max-height: 60px; border-radius: 4px; margin-top: 5px; border: 1px solid #ddd; cursor: pointer;" onclick="openScrapImageModal(this.src)">` : ''}
+                            </td>
+                            <td style="font-weight:bold; color: #2e7d32;">₹${ord.price || '0'}</td>
+                            <td>${ord.date || 'N/A'}</td>
+                            <td><span class="badge" style="background: ${isCompleted ? '#e8f5e9' : '#fff3e0'}; color: ${isCompleted ? '#2e7d32' : '#f57c00'};">${ord.status || 'Pending'}</span></td>
+                            <td><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;" title="${ord.address || 'N/A'}">${ord.address || 'N/A'}</span></td>
+                            <td>
+                                ${(ord.status === 'Order Confirmed' || ord.status === 'Pending' || ord.status === 'Confirmed') ?
+                                `<button class="action-btn" title="Assign Agent" onclick="openAssignModal('${ord._phoneKey}', '${ord.id || ord._ordKey}')" style="background: #e0f2f1; color: #00796b; padding: 4px 8px; border-radius: 4px;"><i class="fas fa-truck"></i> Assign</button>`
+                                : (ord.status === 'Pickuped' ?
+                                    `<button class="action-btn" title="Approve Arrival" onclick="approveOrderArrival('${ord._phoneKey}', '${ord.id || ord._ordKey}', '${ord.price || 0}', '${ord.agentId}')" style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px;"><i class="fas fa-check"></i> Approve</button>`
+                                    : `<span style="font-size: 0.8rem; color: #888;">${ord.agentId ? 'Assigned' : 'N/A'}</span>`)
+                            }
+                            </td>
+                        `;
+                        ordersTableBody.appendChild(trOrd);
+                    });
+
+                    // Update stats
+                    totalUsersElem.textContent = userCount;
+                    activeWalletsElem.textContent = walletCount;
+
+                    if (!hasAddresses) {
+                        addressesTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #7f8c8d;">No addresses found.</td></tr>';
+                    }
+                    if (!hasOrders) {
+                        ordersTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No orders found.</td></tr>';
+                    }
+
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #7f8c8d;">No users registered yet.</td></tr>';
+                    addressesTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #7f8c8d;">No addresses found.</td></tr>';
+                    ordersTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No orders found.</td></tr>';
+                    totalUsersElem.textContent = '0';
+                    activeWalletsElem.textContent = '0';
+                }
+            }, (error) => {
+                console.error("Error fetching data: ", error);
+                tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #e74c3c;">Error loading data: ${error.message}</td></tr>`;
+            });
+
+            // Fetch Agents separately
+            fetchAgentsFromFirebase();
+        }
+
+        function fetchAgentsFromFirebase() {
+            firebase.database().ref('agents').on('value', snap => {
+                const tbody = document.getElementById('agentsTableBody');
+                const select = document.getElementById('agentSelect');
+                tbody.innerHTML = '';
+                select.innerHTML = '<option value="">Select an Agent...</option>';
+
+                const agents = snap.val();
+                allAgentsData = agents || {};
+                if (agents) {
+                    for (let key in agents) {
+                        const ag = agents[key];
+
+                        // Populate Table
+                        let formattedDate = 'N/A';
+                        if (ag.createdAt) {
+                            const d = new Date(ag.createdAt);
+                            formattedDate = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><div class="user-name">${ag.firstName} ${ag.lastName}</div></td>
+                            <td>${ag.phone}</td>
+                            <td><span class="badge" style="background: ${ag.status === 'Active' ? '#e8f5e9' : '#fff3e0'}; color: ${ag.status === 'Active' ? '#2e7d32' : '#f57c00'};">${ag.status}</span></td>
+                            <td style="font-weight: bold; color: #2e7d32;">₹${ag.wallet || 0}</td>
+                            <td>${formattedDate}</td>
+                            <td>${ag.aadhar || 'N/A'}</td>
+                            <td><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;">${ag.address || 'N/A'}</span></td>
+                            <td>
+                                ${ag.aadharDoc ? `<button class="action-btn" title="View Document" onclick="viewAadharDoc('${key}')" style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; margin-right: 5px;"><i class="fas fa-file-alt"></i></button>` : ''}
+                                ${ag.status === 'Pending Approval' ? `<button class="action-btn" title="Authorize" onclick="authorizeAgent('${key}')" style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px;"><i class="fas fa-check"></i> Auth</button>` : ''}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+
+                        // Populate Select Dropdown
+                        if (ag.status === 'Active') {
+                            const opt = document.createElement('option');
+                            opt.value = ag.id;
+                            opt.textContent = `${ag.firstName} ${ag.lastName} (${ag.phone})`;
+                            select.appendChild(opt);
+                        }
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No agents registered.</td></tr>';
+                }
+            });
+        }
+
+        function openScrapImageModal(src) {
+            let modal = document.getElementById('scrapImageModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'scrapImageModal';
+                modal.style.cssText = 'display: none; position: fixed; z-index: 1100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;';
+                modal.onclick = function(event) { if (event.target === this) this.style.display = 'none'; };
+                
+                modal.innerHTML = `
+                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                        <span style="position: absolute; top: -15px; right: -15px; background: white; color: black; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" onclick="document.getElementById('scrapImageModal').style.display='none'">&times;</span>
+                        <img id="scrapImageModalImg" src="" style="max-width: 100%; max-height: 90vh; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('scrapImageModalImg').src = src;
+            modal.style.display = 'flex';
+        }
+
+        function viewAadharDoc(agentId) {
+            const ag = allAgentsData[agentId];
+            if (ag && ag.aadharDoc) {
+                const modalContent = document.getElementById('aadharModalContent');
+                if (ag.aadharDoc.startsWith('data:application/pdf')) {
+                    modalContent.innerHTML = `<iframe src="${ag.aadharDoc}" style="width: 100%; height: 500px; border: none;"></iframe>`;
+                } else {
+                    modalContent.innerHTML = `<img src="${ag.aadharDoc}" style="max-width: 100%; max-height: 70vh; border-radius: 8px;">`;
+                }
+                document.getElementById('aadharModal').style.display = 'flex';
+            }
+        }
+
+        function authorizeAgent(agentId) {
+            showConfirmModal('Authorize Agent', 'Are you sure you want to authorize this agent to start accepting pickups?', () => {
+                firebase.database().ref('agents/' + agentId).update({ status: 'Active' })
+                    .then(() => showToast('Agent authorized successfully!'))
+                    .catch(e => showToast('Error: ' + e.message, 'error'));
+            });
+        }
+
+        function openAssignModal(userPhone, orderId) {
+            document.getElementById('assignUserPhone').value = userPhone;
+            document.getElementById('assignOrderId').value = orderId;
+            document.getElementById('agentSelect').value = '';
+            document.getElementById('assignAgentModal').style.display = 'block';
+        }
+
+        function confirmAssignAgent() {
+            const userPhone = document.getElementById('assignUserPhone').value;
+            const orderId = document.getElementById('assignOrderId').value;
+            const agentId = document.getElementById('agentSelect').value;
+
+            if (!agentId) {
+                showToast("Please select an agent.", "error");
+                return;
+            }
+
+            firebase.database().ref(`users/${userPhone}/orders/${orderId}`).update({
+                agentId: agentId,
+                status: 'Assigned to Agent'
+            }).then(() => {
+                showToast('Agent successfully assigned!');
+                document.getElementById('assignAgentModal').style.display = 'none';
+            }).catch(e => showToast("Error: " + e.message, "error"));
+        }
+
+        function approveOrderArrival(userId, orderId, orderPrice, agentId) {
+            showConfirmModal('Approve Arrival', 'Are you sure you want to approve the product arrival? This will finalize the order and credit the wallets.', () => {
+                // 1. Update Order Status
+                firebase.database().ref(`users/${userId}/orders/${orderId}`).update({
+                    status: 'Completed'
+                }).then(() => {
+                    // 2. Credit Agent Wallet (50 rs)
+                    if (agentId && agentId !== 'undefined' && agentId !== 'null') {
+                        firebase.database().ref(`agents/${agentId}`).once('value', snap => {
+                            const ag = snap.val();
+                            if (ag) {
+                                const newAgentWallet = (parseFloat(ag.wallet) || 0) + 50;
+                                firebase.database().ref(`agents/${agentId}`).update({ wallet: newAgentWallet });
+
+                                // Log Agent Transaction
+                                firebase.database().ref(`agents/${agentId}/transactions`).push({
+                                    type: 'Credit',
+                                    amount: 50,
+                                    desc: `Commission for Order #${orderId}`,
+                                    date: new Date().toLocaleDateString()
+                                });
+                            }
+                        });
+                    }
+
+                    // 3. Credit User Wallet
+                    firebase.database().ref(`users/${userId}`).once('value', snap => {
+                        const u = snap.val();
+                        if (u) {
+                            const newUserWallet = (parseFloat(u.wallet) || 0) + parseFloat(orderPrice);
+                            firebase.database().ref(`users/${userId}`).update({ wallet: newUserWallet });
+                        }
+                    });
+
+                    showToast('Order approved and wallets credited successfully!');
+                }).catch(e => showToast("Error: " + e.message, "error"));
+            });
+        }
+
+        // Switching Tabs
+        function switchAdminTab(tab) {
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.style.color = 'var(--text-light)';
+                btn.style.borderBottom = '3px solid transparent';
+            });
+            const activeBtn = document.getElementById('btn-tab-' + tab);
+            if (activeBtn) {
+                activeBtn.style.color = 'var(--primary-green)';
+                activeBtn.style.borderBottom = '3px solid var(--primary-green)';
+            }
+
+            document.querySelectorAll('.tab-section').forEach(sec => sec.style.display = 'none');
+            document.getElementById('section-' + tab).style.display = 'block';
+        }
+
+        // Simple table filter function
+        function filterTable(tableId, inputId) {
+            const input = document.getElementById(inputId);
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById(tableId);
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) { // Skip header row
+                let match = false;
+                const tds = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < tds.length; j++) {
+                    if (tds[j]) {
+                        let txtValue = tds[j].textContent || tds[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            match = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = match ? "" : "none";
+            }
+        }
+
+        // View specific user's addresses
+        function viewUserAddresses(phoneKey) {
+            // Switch to Addresses Tab
+            switchAdminTab('addresses');
+
+            // Clear the search input
+            document.getElementById('searchInputAddresses').value = '';
+
+            // Filter the addresses table specifically by data-user-phone
+            const table = document.getElementById('addressesTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const rowPhoneKey = tr[i].getAttribute('data-user-phone');
+                if (rowPhoneKey === phoneKey) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+
+            // Show a visual cue that we are filtering
+            const header = document.querySelector('#section-addresses h2');
+            header.innerHTML = '<i class="fas fa-map-marker-alt"></i> User Addresses <span style="font-size: 0.8rem; background: #fff3e0; color: #f57c00; padding: 2px 8px; border-radius: 12px; margin-left: 10px;">Filtered View</span>';
+
+            // Add a clear filter button to the search box if not already there
+            let searchBox = document.querySelector('#section-addresses .search-box');
+            if (!document.getElementById('clearAddrFilterBtn')) {
+                const clearBtn = document.createElement('button');
+                clearBtn.id = 'clearAddrFilterBtn';
+                clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear Filter';
+                clearBtn.style.cssText = 'background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-left: 10px; cursor: pointer; font-size: 0.8rem;';
+                clearBtn.onclick = function () {
+                    // Reset filter
+                    for (let i = 1; i < tr.length; i++) {
+                        tr[i].style.display = "";
+                    }
+                    header.innerHTML = '<i class="fas fa-map-marker-alt"></i> User Addresses';
+                    this.remove();
+                };
+                searchBox.appendChild(clearBtn);
+            }
+        }
+
+        // View specific user's orders
+        function viewUserOrders(phoneKey) {
+            // Switch to Orders Tab
+            switchAdminTab('orders');
+
+            // Clear the search input
+            document.getElementById('searchInputOrders').value = '';
+
+            // Filter the orders table specifically by data-user-phone
+            const table = document.getElementById('ordersTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const rowPhoneKey = tr[i].getAttribute('data-user-phone');
+                if (rowPhoneKey === phoneKey) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+
+            // Show a visual cue that we are filtering
+            const header = document.querySelector('#section-orders h2');
+            header.innerHTML = '<i class="fas fa-shopping-bag"></i> User Orders <span style="font-size: 0.8rem; background: #fff3e0; color: #f57c00; padding: 2px 8px; border-radius: 12px; margin-left: 10px;">Filtered View</span>';
+
+            // Add a clear filter button to the search box if not already there
+            let searchBox = document.querySelector('#section-orders .search-box');
+            if (!document.getElementById('clearOrderFilterBtn')) {
+                const clearBtn = document.createElement('button');
+                clearBtn.id = 'clearOrderFilterBtn';
+                clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear Filter';
+                clearBtn.style.cssText = 'background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; margin-left: 10px; cursor: pointer; font-size: 0.8rem;';
+                clearBtn.onclick = function () {
+                    // Reset filter
+                    for (let i = 1; i < tr.length; i++) {
+                        tr[i].style.display = "";
+                    }
+                    header.innerHTML = '<i class="fas fa-shopping-bag"></i> User Orders';
+                    this.remove();
+                };
+                searchBox.appendChild(clearBtn);
+            }
+        }
+
+        function openUserDetailsModal(phoneKey) {
+            const user = allUsersData[phoneKey];
+            if (!user) return;
+
+            const modal = document.getElementById('userDetailsModal');
+            const modalBody = document.getElementById('modalBodyContent');
+
+            // Format Date
+            let formattedDate = 'N/A';
+            if (user.createdAt) {
+                const d = new Date(user.createdAt);
+                formattedDate = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+            }
+
+            modalBody.innerHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">First Name</span>
+                    <span class="detail-value">${user.firstName || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Last Name</span>
+                    <span class="detail-value">${user.lastName || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Phone Number</span>
+                    <span class="detail-value">${user.phone || phoneKey}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email Address</span>
+                    <span class="detail-value">${user.email || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Role (Type)</span>
+                    <span class="detail-value" style="text-transform: uppercase; font-weight: bold; color: var(--primary-green);">${user.type || 'user'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Wallet Balance</span>
+                    <span class="detail-value">₹${user.wallet || '0'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Registration Date</span>
+                    <span class="detail-value">${formattedDate}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Password</span>
+                    <span class="detail-value" style="font-family: monospace;">${user.password || 'N/A'}</span>
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('userDetailsModal').style.display = 'none';
+        }
+    </script>
+    </div> <!-- End of adminDashboardWrapper -->
+</body>
+
+</html>

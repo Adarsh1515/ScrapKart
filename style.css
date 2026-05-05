@@ -1,0 +1,74 @@
+/* Order Tracking Timeline Styles */
+.tracking-timeline {
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+    position: relative;
+}
+/* The vertical grey line */
+.tracking-timeline::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    bottom: 0;
+    left: 7px;
+    width: 2px;
+    background: #e0e0e0;
+    z-index: 0;
+}
+.tracking-step {
+    position: relative;
+    padding-left: 35px;
+    margin-bottom: 38px; /* ~1cm distance */
+    min-height: 20px;
+}
+.tracking-step:last-child {
+    margin-bottom: 0;
+}
+/* The Dot */
+.tracking-step .icon {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #e0e0e0;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+/* Completed / Active Dot */
+.tracking-step.completed .icon, .tracking-step.current .icon {
+    background: #2e7d32;
+    border-color: #2e7d32;
+}
+/* Current Step Dot (pulsing/highlighted) */
+.tracking-step.current .icon {
+    box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.2);
+}
+/* The Text */
+.tracking-step .text {
+    font-size: 1.05rem;
+    color: #888;
+    line-height: 1.2;
+    transition: color 0.3s ease;
+}
+.tracking-step.completed .text, .tracking-step.current .text {
+    color: #333;
+    font-weight: 600;
+}
+/* The Green Line connecting completed steps */
+.tracking-step.completed::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    height: 42px; /* matches margin-bottom + offset */
+    width: 2px;
+    background: #2e7d32;
+    z-index: 1;
+}
+.tracking-step:last-child::after {
+    display: none;
+}
