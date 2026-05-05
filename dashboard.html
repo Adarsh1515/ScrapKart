@@ -77,11 +77,11 @@
                     <i class="fas fa-history" style="width: 25px;"></i> Order History
                 </button>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 5px 0;">
-                <button class="menu-btn" onclick="window.location.href='../Admine/admin.html'"
+                <button class="menu-btn" onclick="window.location.href='../admin.html'"
                     style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s; color: #d32f2f;">
                     <i class="fas fa-shield-alt" style="width: 25px;"></i> Admin Portal
                 </button>
-                <button class="menu-btn" onclick="window.location.href='../Agent/agent.html'"
+                <button class="menu-btn" onclick="window.location.href='../agent.html'"
                     style="width: 100%; padding: 15px 20px; text-align: left; border: none; background: white; cursor: pointer; border-left: 4px solid transparent; transition: all 0.2s; color: #1976d2;">
                     <i class="fas fa-truck-moving" style="width: 25px;"></i> Agent Portal
                 </button>
@@ -100,12 +100,17 @@
                     <div id="sell-step-1">
                         <div class="form-group">
                             <label>Upload Scrap Image</label>
-                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Upload a single photo of your scrap. Our AI will automatically detect all the materials present.</p>
-                            <input type="file" id="scrapImageInput" accept="image/*" onchange="handleImageUpload(event)" style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; width: 100%; box-sizing: border-box; cursor: pointer; background: white;">
-                            <div id="imagePreviewContainer" style="margin-top: 15px; display: none; text-align: center; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px dashed #ccc;">
-                                <img id="previewImg" src="" alt="Scrap Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Upload a single photo of
+                                your scrap. Our AI will automatically detect all the materials present.</p>
+                            <input type="file" id="scrapImageInput" accept="image/*" onchange="handleImageUpload(event)"
+                                style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; width: 100%; box-sizing: border-box; cursor: pointer; background: white;">
+                            <div id="imagePreviewContainer"
+                                style="margin-top: 15px; display: none; text-align: center; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px dashed #ccc;">
+                                <img id="previewImg" src="" alt="Scrap Preview"
+                                    style="max-width: 100%; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                             </div>
-                            <div id="aiFeedback" style="margin-top: 8px; font-size: 0.85rem; color: #1976d2; display: none; font-weight: bold; padding: 10px; background: #e3f2fd; border-radius: 6px;">
+                            <div id="aiFeedback"
+                                style="margin-top: 8px; font-size: 0.85rem; color: #1976d2; display: none; font-weight: bold; padding: 10px; background: #e3f2fd; border-radius: 6px;">
                                 <i class="fas fa-robot"></i> <span id="aiFeedbackText">Detecting scrap items...</span>
                             </div>
                         </div>
@@ -113,44 +118,64 @@
                         <div class="form-group">
                             <label>Select Scrap Items & Enter Weight</label>
                             <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
-                                
+
                                 <div class="scrap-item-row" style="display: flex; align-items: center; gap: 15px;">
                                     <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
-                                        <input type="checkbox" id="check_paper" value="paper" data-price="12" onchange="toggleWeightInput('paper'); calculatePrice();" style="width: 18px; height: 18px; cursor: pointer;">
-                                        <label for="check_paper" style="margin: 0; cursor: pointer;">Paper (₹12/kg)</label>
+                                        <input type="checkbox" id="check_paper" value="paper" data-price="12"
+                                            onchange="toggleWeightInput('paper'); calculatePrice();"
+                                            style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="check_paper" style="margin: 0; cursor: pointer;">Paper
+                                            (₹12/kg)</label>
                                     </div>
                                     <div id="weight_container_paper" style="flex: 1; display: none;">
-                                        <input type="number" id="weight_paper" placeholder="Weight (kg)" min="1" oninput="calculatePrice()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="number" id="weight_paper" placeholder="Weight (kg)" min="1"
+                                            oninput="calculatePrice()"
+                                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                     </div>
                                 </div>
 
                                 <div class="scrap-item-row" style="display: flex; align-items: center; gap: 15px;">
                                     <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
-                                        <input type="checkbox" id="check_plastic" value="plastic" data-price="15" onchange="toggleWeightInput('plastic'); calculatePrice();" style="width: 18px; height: 18px; cursor: pointer;">
-                                        <label for="check_plastic" style="margin: 0; cursor: pointer;">Plastic (₹15/kg)</label>
+                                        <input type="checkbox" id="check_plastic" value="plastic" data-price="15"
+                                            onchange="toggleWeightInput('plastic'); calculatePrice();"
+                                            style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="check_plastic" style="margin: 0; cursor: pointer;">Plastic
+                                            (₹15/kg)</label>
                                     </div>
                                     <div id="weight_container_plastic" style="flex: 1; display: none;">
-                                        <input type="number" id="weight_plastic" placeholder="Weight (kg)" min="1" oninput="calculatePrice()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="number" id="weight_plastic" placeholder="Weight (kg)" min="1"
+                                            oninput="calculatePrice()"
+                                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                     </div>
                                 </div>
 
                                 <div class="scrap-item-row" style="display: flex; align-items: center; gap: 15px;">
                                     <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
-                                        <input type="checkbox" id="check_metal" value="metal" data-price="40" onchange="toggleWeightInput('metal'); calculatePrice();" style="width: 18px; height: 18px; cursor: pointer;">
-                                        <label for="check_metal" style="margin: 0; cursor: pointer;">Metal (₹40/kg)</label>
+                                        <input type="checkbox" id="check_metal" value="metal" data-price="40"
+                                            onchange="toggleWeightInput('metal'); calculatePrice();"
+                                            style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="check_metal" style="margin: 0; cursor: pointer;">Metal
+                                            (₹40/kg)</label>
                                     </div>
                                     <div id="weight_container_metal" style="flex: 1; display: none;">
-                                        <input type="number" id="weight_metal" placeholder="Weight (kg)" min="1" oninput="calculatePrice()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="number" id="weight_metal" placeholder="Weight (kg)" min="1"
+                                            oninput="calculatePrice()"
+                                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                     </div>
                                 </div>
 
                                 <div class="scrap-item-row" style="display: flex; align-items: center; gap: 15px;">
                                     <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
-                                        <input type="checkbox" id="check_ewaste" value="ewaste" data-price="90" onchange="toggleWeightInput('ewaste'); calculatePrice();" style="width: 18px; height: 18px; cursor: pointer;">
-                                        <label for="check_ewaste" style="margin: 0; cursor: pointer;">E-Waste (₹90/kg)</label>
+                                        <input type="checkbox" id="check_ewaste" value="ewaste" data-price="90"
+                                            onchange="toggleWeightInput('ewaste'); calculatePrice();"
+                                            style="width: 18px; height: 18px; cursor: pointer;">
+                                        <label for="check_ewaste" style="margin: 0; cursor: pointer;">E-Waste
+                                            (₹90/kg)</label>
                                     </div>
                                     <div id="weight_container_ewaste" style="flex: 1; display: none;">
-                                        <input type="number" id="weight_ewaste" placeholder="Weight (kg)" min="1" oninput="calculatePrice()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="number" id="weight_ewaste" placeholder="Weight (kg)" min="1"
+                                            oninput="calculatePrice()"
+                                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                     </div>
                                 </div>
 
@@ -408,7 +433,8 @@
     <div id="trackingModal" class="modal">
         <div class="modal-content" style="max-width: 450px; padding: 25px; border-radius: 12px;">
             <span class="close" onclick="closeTrackingModal()">&times;</span>
-            <h3 style="color: #2e7d32; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3
+                style="color: #2e7d32; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                 <i class="fas fa-route"></i> Track Order
             </h3>
             <div id="trackingContent">
@@ -480,7 +506,7 @@
             activeBtn.style.color = '#2e7d32';
         }
     </script>
-    
+
     <!-- Chatbot Script -->
     <script src="chatbot.js"></script>
 </body>
